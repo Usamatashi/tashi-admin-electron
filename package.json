@@ -1,0 +1,91 @@
+{
+  "name": "tashi-admin",
+  "version": "1.0.0",
+  "description": "Tashi Brakes Admin Panel — Desktop Application",
+  "private": true,
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n vite,electron -c blue,green -k \"vite dev --port 5173\" \"wait-on http://localhost:5173 && cross-env IS_DEV=true electron .\"",
+    "build": "vite build",
+    "dist": "npm run build && electron-builder --win",
+    "dist:portable": "npm run build && electron-builder --win portable",
+    "dist:all": "npm run build && electron-builder --win nsis portable",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "bcryptjs": "^3.0.3",
+    "bwip-js": "^4.10.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.8.0",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.545.0",
+    "multer": "^2.1.1",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.10.1",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "~5.9.2",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.tashibrakes.admin",
+    "productName": "Tashi Admin",
+    "copyright": "Copyright © 2025 Tashi Brakes",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "server/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "public",
+        "to": "public",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "public/tashi-icon.png",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowDirChange": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tashi Admin",
+      "installerIcon": "public/tashi-icon.png",
+      "uninstallerIcon": "public/tashi-icon.png",
+      "installerHeaderIcon": "public/tashi-icon.png"
+    },
+    "portable": {
+      "artifactName": "TashiAdmin-Portable-${version}.exe"
+    }
+  }
+}
