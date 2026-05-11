@@ -71,7 +71,7 @@
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
       ],
-      "icon": "public/tashi-icon.png",
+      "icon": "public/tashi-icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -80,9 +80,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Tashi Admin",
-      "installerIcon": "public/tashi-icon.png",
-      "uninstallerIcon": "public/tashi-icon.png",
-      "installerHeaderIcon": "public/tashi-icon.png"
+      "installerIcon": "public/tashi-icon.ico",
+      "uninstallerIcon": "public/tashi-icon.ico",
+      "installerHeaderIcon": "public/tashi-icon.ico"
     },
     "portable": {
       "artifactName": "TashiAdmin-Portable-${version}.exe"
