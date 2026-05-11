@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tashi Admin — Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 36px 40px;
+      width: 100%;
+      max-width: 540px;
+    }
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo-wrap img { height: 48px; width: auto; }
+    .logo-wrap h1 { font-size: 22px; font-weight: 700; color: #E87722; }
+    .subtitle { font-size: 13px; color: #666; margin-bottom: 28px; line-height: 1.5; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+    .field { margin-bottom: 20px; }
+    textarea {
+      width: 100%;
+      height: 140px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: "Courier New", monospace;
+      resize: vertical;
+      outline: none;
+      transition: border 0.2s;
+    }
+    textarea:focus { border-color: #E87722; }
+    .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+    .btn {
+      flex: 1;
+      padding: 11px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: #E87722; color: #fff; }
+    .btn-primary:hover { background: #d06618; }
+    .btn-secondary { background: #f0f0f0; color: #444; }
+    .btn-secondary:hover { background: #e4e4e4; }
+    .error {
+      background: #fff0f0;
+      border: 1.5px solid #ffb3b3;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #c0392b;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .hint { font-size: 11.5px; color: #888; margin-top: 4px; }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <img src="../public/tashi-logo-transparent.png" alt="Tashi" onerror="this.style.display='none'" />
+      <h1>Tashi Admin</h1>
+    </div>
+
+    <p class="subtitle">
+      Welcome! To connect to your Firebase database, paste your Firebase Service Account JSON below.
+      You can download it from the Firebase Console → Project Settings → Service Accounts.
+    </p>
+
+    <div id="error" class="error"></div>
+
+    <div class="field">
+      <label>Firebase Service Account JSON</label>
+      <textarea id="serviceAccount" placeholder='{ "type": "service_account", "project_id": "...", ... }'></textarea>
+      <p class="hint">Paste the entire JSON content of your serviceAccountKey.json file.</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="browseFile()">Browse File…</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="save()">Save & Launch</button>
+    </div>
+  </div>
+
+  <script>
+    async function browseFile() {
+      const content = await window.electronAPI.openFileDialog();
+      if (content) document.getElementById("serviceAccount").value = content;
+    }
+
+    async function save() {
+      const btn = document.getElementById("saveBtn");
+      const errEl = document.getElementById("error");
+      errEl.style.display = "none";
+      const sa = document.getElementById("serviceAccount").value.trim();
+      if (!sa) { showError("Please provide your Firebase Service Account JSON."); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+      const saved = await window.electronAPI.saveConfig({ firebaseServiceAccount: sa, sessionSecret: "" });
+      if (!saved.ok) { showError(saved.error); btn.disabled = false; btn.textContent = "Save & Launch"; return; }
+
+      btn.innerHTML = '<span class="spinner"></span>Starting server…';
+      const launched = await window.electronAPI.launchApp();
+      if (!launched.ok) { showError(launched.error); btn.disabled = false; btn.textContent = "Save & Launch"; return; }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("error");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+  </script>
+</body>
+</html>
