@@ -174,6 +174,7 @@ export default function AdminPrintLabels() {
   const [activePreset, setActivePreset] = useState<number | null>(null);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [showPrintSheet, setShowPrintSheet] = useState(false);
 
   useEffect(() => {
     adminMe().catch(() => navigate("/admin/login", { replace: true }));
@@ -247,6 +248,27 @@ export default function AdminPrintLabels() {
     settings.labelType === "qr"      ? selectedQr.length > 0 :
     settings.labelType === "text"    ? settings.textLines.some((l) => l.text.trim()) && settings.copies >= 1 :
     /* barcode */                       settings.barcodeValue.trim().length > 0 && settings.copies >= 1;
+
+  async function handleDirectPrint() {
+    if (!canGenerate) return;
+    const wCm = settings.width;
+    const hCm = settings.height;
+    const style = document.createElement("style");
+    style.id = "qr-direct-print-style";
+    style.textContent = `
+      @media print {
+        @page { size: ${wCm}cm ${hCm}cm; margin: 0; }
+        body > * { display: none !important; }
+        #qr-direct-print-sheet { display: block !important; }
+      }
+    `;
+    document.head.appendChild(style);
+    setShowPrintSheet(true);
+    await new Promise<void>((r) => setTimeout(r, 400));
+    window.print();
+    setShowPrintSheet(false);
+    document.head.removeChild(style);
+  }
 
   async function handleGeneratePDF() {
     if (!canGenerate || generating) return;
@@ -437,6 +459,18 @@ export default function AdminPrintLabels() {
               ? `${selectedQr.length} label${selectedQr.length !== 1 ? "s" : ""} selected`
               : `${settings.copies} cop${settings.copies !== 1 ? "ies" : "y"}`}
           </span>
+          <button
+            onClick={handleDirectPrint}
+            disabled={!canGenerate}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-colors",
+              canGenerate
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "cursor-not-allowed bg-ink-200 text-ink-400",
+            )}
+          >
+            <Printer className="h-4 w-4" /> Print Direct
+          </button>
           <button
             onClick={handleGeneratePDF}
             disabled={!canGenerate || generating}
@@ -658,13 +692,24 @@ export default function AdminPrintLabels() {
           </div>
 
           <div className="mx-5 mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-[11px] font-semibold text-blue-800 mb-1">How to print perfectly</p>
-            <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-700">
-              <li>Click <strong>Download PDF</strong> — one label per page, exact size</li>
-              <li>Open in <strong>Adobe Acrobat Reader</strong></li>
-              <li>File → Print → Size → <strong>"Actual size"</strong> (not Fit/Shrink)</li>
-              <li>Select your <strong>4BARCODE</strong> printer → Print</li>
-            </ol>
+            <p className="text-[11px] font-semibold text-blue-800 mb-1">Two ways to print</p>
+            <div className="mb-2">
+              <p className="text-[11px] font-semibold text-emerald-700 mb-0.5">✓ Print Direct (recommended)</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-700">
+                <li>Select QR codes on the left</li>
+                <li>Click <strong>Print Direct</strong> (green button) — opens browser print dialog</li>
+                <li>Pick your <strong>label printer</strong> from the dialog</li>
+                <li>Set Scale to <strong>"Actual size"</strong> or 100% → Print</li>
+              </ol>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-blue-700 mb-0.5">Download PDF (Adobe Acrobat)</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-700">
+                <li>Click <strong>Download PDF</strong> — one label per page, exact size</li>
+                <li>Open in <strong>Adobe Acrobat Reader</strong></li>
+                <li>File → Print → Size → <strong>"Actual size"</strong> → Print</li>
+              </ol>
+            </div>
           </div>
 
           <div className="flex-1 p-6">
@@ -1079,6 +1124,82 @@ export default function AdminPrintLabels() {
           </aside>
         )}
       </div>
+
+      {/* ── Hidden print-only sheet for direct browser printing ── */}
+      {showPrintSheet && (
+        <div
+          id="qr-direct-print-sheet"
+          style={{ display: "none", position: "fixed", inset: 0, background: "#fff", zIndex: 9999 }}
+        >
+          {settings.labelType === "qr" && selectedQr.map((q) => (
+            <div
+              key={q.qrNumber}
+              style={{
+                width: `${settings.width}cm`,
+                height: `${settings.height}cm`,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: `${settings.marginV}cm ${settings.marginH}cm`,
+                pageBreakAfter: "always",
+                boxSizing: "border-box",
+                overflow: "hidden",
+                border: settings.showBorder ? "0.5pt solid #000" : "none",
+                borderRadius: settings.shape === "rounded" ? `${settings.radius}cm` : "0",
+              }}
+            >
+              <img
+                src={qrUrl(q.qrNumber, 600)}
+                alt={q.qrNumber}
+                style={{ width: `${settings.qrScale * 100}%`, height: "auto", objectFit: "contain" }}
+              />
+              {settings.textMode !== "none" && (
+                <div style={{ fontFamily: "Arial, sans-serif", fontSize: `${settings.fontSize}pt`, textAlign: "center", marginTop: "2pt", wordBreak: "break-all" }}>
+                  {settings.textMode === "qrNumber"    ? q.qrNumber :
+                   settings.textMode === "productName" ? q.productName :
+                   settings.customText}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {settings.labelType === "text" && [...Array(settings.copies)].map((_, ci) => (
+            <div
+              key={ci}
+              style={{
+                width: `${settings.width}cm`,
+                height: `${settings.height}cm`,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: `${settings.marginV}cm ${settings.marginH}cm`,
+                pageBreakAfter: "always",
+                boxSizing: "border-box",
+                overflow: "hidden",
+                border: settings.showBorder ? "0.5pt solid #000" : "none",
+              }}
+            >
+              {settings.textLines.filter((l) => l.text.trim()).map((line, li) => (
+                <div
+                  key={li}
+                  style={{
+                    fontFamily: "Arial, sans-serif",
+                    fontSize: `${line.size}pt`,
+                    fontWeight: line.bold ? "bold" : "normal",
+                    textAlign: line.align,
+                    width: "100%",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {line.text}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
