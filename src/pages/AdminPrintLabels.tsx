@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Printer, Search, ChevronLeft, RefreshCw,
@@ -1174,7 +1175,7 @@ export default function AdminPrintLabels() {
       </div>
 
       {/* ── Hidden print-only sheet for direct browser printing ── */}
-      {showPrintSheet && (
+      {showPrintSheet && createPortal(
         <div
           id="qr-direct-print-sheet"
           style={{ display: "none", position: "fixed", inset: 0, background: "#fff", zIndex: 9999 }}
@@ -1253,7 +1254,8 @@ export default function AdminPrintLabels() {
               ))}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Electron printer picker modal ── */}
