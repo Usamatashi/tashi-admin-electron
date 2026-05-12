@@ -1150,9 +1150,16 @@ export default function AdminPrintLabels() {
               }}
             >
               <img
-                src={qrUrl(q.qrNumber, 600)}
+                src={qrUrl(q.qrNumber, 800)}
                 alt={q.qrNumber}
-                style={{ width: `${settings.qrScale * 100}%`, height: "auto", objectFit: "contain" }}
+                style={{
+                  width: `${settings.qrScale * 100}%`,
+                  height: "auto",
+                  objectFit: "contain",
+                  imageRendering: "pixelated",
+                  WebkitPrintColorAdjust: "exact",
+                  printColorAdjust: "exact",
+                } as React.CSSProperties}
               />
               {settings.textMode !== "none" && (
                 <div style={{ fontFamily: "Arial, sans-serif", fontSize: `${settings.fontSize}pt`, textAlign: "center", marginTop: "2pt", wordBreak: "break-all" }}>
