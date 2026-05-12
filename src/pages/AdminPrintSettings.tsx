@@ -3,10 +3,11 @@ import JsBarcode from "jsbarcode";
 import { useRef } from "react";
 import {
   Printer, Save, Plus, Trash2, Star, Settings2, Receipt,
+  ChevronDown, ChevronUp, Monitor, Layers, SlidersHorizontal, Cpu,
 } from "lucide-react";
 import {
   loadReceiptSettings, saveReceiptSettings,
-  DEFAULT_RECEIPT_SETTINGS,
+  DEFAULT_RECEIPT_SETTINGS, DEFAULT_PRINTER,
   type ReceiptSettings, type PrinterConfig,
 } from "@/lib/printSettings";
 import { PageHeader, PageShell, Btn, Card, Field } from "@/components/admin/ui";
@@ -19,10 +20,8 @@ const FONT_OPTIONS = [
   { label: "Tahoma (compact sans-serif)", value: "Tahoma, Geneva, sans-serif" },
 ];
 
-const PAPER_WIDTHS = ["58mm", "72mm", "80mm", "A4"];
-const PRINTER_TYPES = ["thermal", "laser", "inkjet"];
-
 type Tab = "receipt" | "printers";
+type PrinterTab = "pageSetup" | "graphics" | "stock" | "options";
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -34,6 +33,241 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
       </div>
       <span className="text-sm text-ink-700">{label}</span>
     </label>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-ink-100 last:border-0">
+      <span className="w-40 shrink-0 text-[12px] text-ink-500">{label}</span>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
+function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-md border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+    >
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
+function NumIn({ value, onChange, min, max, step = 0.001, unit = "" }: {
+  value: number; onChange: (v: number) => void; min: number; max: number; step?: number; unit?: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="number" min={min} max={max} step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-24 rounded-md border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+      />
+      {unit && <span className="text-[11px] text-ink-400">{unit}</span>}
+    </div>
+  );
+}
+
+function PrinterPropertiesPanel({
+  p, onChange,
+}: {
+  p: PrinterConfig;
+  onChange: (updated: PrinterConfig) => void;
+}) {
+  const [ptab, setPtab] = useState<PrinterTab>("pageSetup");
+  function up<K extends keyof PrinterConfig>(key: K, val: PrinterConfig[K]) {
+    onChange({ ...p, [key]: val });
+  }
+
+  const tabs: { id: PrinterTab; label: string; icon: React.ReactNode }[] = [
+    { id: "pageSetup", label: "Page Setup", icon: <Monitor className="h-3.5 w-3.5" /> },
+    { id: "graphics",  label: "Graphics",   icon: <Layers className="h-3.5 w-3.5" /> },
+    { id: "stock",     label: "Stock",      icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
+    { id: "options",   label: "Options",    icon: <Cpu className="h-3.5 w-3.5" /> },
+  ];
+
+  return (
+    <div className="rounded-xl border border-ink-200 bg-white overflow-hidden shadow-sm">
+      {/* Tab bar — styled like 4BARCODE Properties dialog */}
+      <div className="flex border-b border-ink-200 bg-ink-50">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setPtab(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors ${
+              ptab === t.id
+                ? "border-brand-500 text-brand-700 bg-white"
+                : "border-transparent text-ink-500 hover:text-ink-700"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="p-4">
+        {/* ── PAGE SETUP ── */}
+        {ptab === "pageSetup" && (
+          <div>
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Stock / Paper</div>
+            <Row label="Stock name">
+              <input
+                className="w-full rounded-md border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                value={p.stockName}
+                onChange={(e) => up("stockName", e.target.value)}
+                placeholder="e.g. 小标签(Small label)"
+              />
+            </Row>
+            <Row label="Width">
+              <NumIn value={p.labelWidthIn} onChange={(v) => up("labelWidthIn", v)} min={0.5} max={10} step={0.01} unit="in" />
+            </Row>
+            <Row label="Height">
+              <NumIn value={p.labelHeightIn} onChange={(v) => up("labelHeightIn", v)} min={0.5} max={10} step={0.01} unit="in" />
+            </Row>
+            <Row label="Source">
+              <Sel value={p.paperSource} onChange={(v) => up("paperSource", v as PrinterConfig["paperSource"])}
+                options={["Continuous Roll", "Cut Sheet", "Manual Feed"]} />
+            </Row>
+            <Row label="Orientation">
+              <Sel value={p.orientation} onChange={(v) => up("orientation", v as PrinterConfig["orientation"])}
+                options={["Portrait", "Landscape", "Portrait 180°", "Landscape 180°"]} />
+            </Row>
+            <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Margins (inches)</div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <Row label="Left"><NumIn value={p.marginLeft} onChange={(v) => up("marginLeft", v)} min={0} max={2} step={0.001} unit="in" /></Row>
+              <Row label="Right"><NumIn value={p.marginRight} onChange={(v) => up("marginRight", v)} min={0} max={2} step={0.001} unit="in" /></Row>
+              <Row label="Top"><NumIn value={p.marginTop} onChange={(v) => up("marginTop", v)} min={0} max={2} step={0.001} unit="in" /></Row>
+              <Row label="Bottom"><NumIn value={p.marginBottom} onChange={(v) => up("marginBottom", v)} min={0} max={2} step={0.001} unit="in" /></Row>
+            </div>
+          </div>
+        )}
+
+        {/* ── GRAPHICS ── */}
+        {ptab === "graphics" && (
+          <div>
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Resolution</div>
+            <Row label="DPI">
+              <Sel value={String(p.resolutionDpi)} onChange={(v) => up("resolutionDpi", Number(v))}
+                options={["152", "203", "300", "406", "600"]} />
+            </Row>
+
+            <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Dithering</div>
+            <div className="grid grid-cols-1 gap-1 pl-1">
+              {(["None", "Halftone", "Ordered", "Algebraic", "Error Diffusion"] as const).map((d) => (
+                <label key={d} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio" name={`dither-${p.id}`}
+                    checked={p.dithering === d}
+                    onChange={() => up("dithering", d)}
+                    className="accent-brand-500"
+                  />
+                  <span className="text-sm text-ink-700">{d}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Color</div>
+            <Row label="Color control">
+              <Sel value={p.colorControl} onChange={(v) => up("colorControl", v as PrinterConfig["colorControl"])}
+                options={["Monochrome", "Color"]} />
+            </Row>
+            <div className="flex gap-6 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-ink-700">
+                <input type="checkbox" className="accent-brand-500" checked={p.mirrorImage} onChange={(e) => up("mirrorImage", e.target.checked)} />
+                Mirror Image
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-ink-700">
+                <input type="checkbox" className="accent-brand-500" checked={p.negative} onChange={(e) => up("negative", e.target.checked)} />
+                Negative
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* ── STOCK ── */}
+        {ptab === "stock" && (
+          <div>
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Media Settings</div>
+            <Row label="Method">
+              <Sel value={p.mediaMethod} onChange={(v) => up("mediaMethod", v as PrinterConfig["mediaMethod"])}
+                options={["Direct Thermal", "Thermal Transfer"]} />
+            </Row>
+            <Row label="Type">
+              <Sel value={p.mediaType} onChange={(v) => up("mediaType", v as PrinterConfig["mediaType"])}
+                options={["Labels With Gaps", "Continuous", "Black Mark", "Die Cut"]} />
+            </Row>
+            <Row label="Gap height">
+              <NumIn value={p.gapHeightIn} onChange={(v) => up("gapHeightIn", v)} min={0} max={1} step={0.01} unit="in" />
+            </Row>
+            <Row label="Gap offset">
+              <NumIn value={p.gapOffsetIn} onChange={(v) => up("gapOffsetIn", v)} min={0} max={1} step={0.01} unit="in" />
+            </Row>
+
+            <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Media Handling</div>
+            <Row label="Post-print action">
+              <Sel value={p.postPrintAction} onChange={(v) => up("postPrintAction", v as PrinterConfig["postPrintAction"])}
+                options={["Tear Off", "Peel", "Rewind", "None"]} />
+            </Row>
+            <Row label="Feed offset">
+              <NumIn value={p.feedOffsetIn} onChange={(v) => up("feedOffsetIn", v)} min={0} max={2} step={0.01} unit="in" />
+            </Row>
+          </div>
+        )}
+
+        {/* ── OPTIONS ── */}
+        {ptab === "options" && (
+          <div>
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Printer Options</div>
+            <Row label="Print speed">
+              <div className="flex items-center gap-3">
+                <NumIn value={p.printSpeedInSec} onChange={(v) => up("printSpeedInSec", v)} min={1} max={12} step={0.5} unit="in/sec" />
+              </div>
+            </Row>
+            <Row label={`Darkness: ${p.darkness}`}>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range" min={1} max={15} step={1}
+                  value={p.darkness}
+                  onChange={(e) => up("darkness", Number(e.target.value))}
+                  className="w-40 accent-brand-500"
+                />
+                <span className="text-sm font-semibold text-ink-700 w-4">{p.darkness}</span>
+              </div>
+            </Row>
+
+            <div className="mt-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">Graphics Format</div>
+            <Row label="Direct to buffer">
+              <Sel value={p.directToBuffer} onChange={(v) => up("directToBuffer", v as PrinterConfig["directToBuffer"])}
+                options={["Automatic", "On", "Off"]} />
+            </Row>
+            <Row label="Stored graphics">
+              <Sel value={p.storedGraphics} onChange={(v) => up("storedGraphics", v as PrinterConfig["storedGraphics"])}
+                options={["Automatic", "On", "Off"]} />
+            </Row>
+
+            {/* Summary badge */}
+            <div className="mt-4 rounded-lg bg-ink-50 border border-ink-200 px-4 py-3 text-[11px] text-ink-600 space-y-1">
+              <div className="font-semibold text-ink-800 mb-1">Configuration Summary</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                <span>Label:</span><span className="font-medium text-ink-900">{p.stockName || "—"} ({p.labelWidthIn} × {p.labelHeightIn} in)</span>
+                <span>Resolution:</span><span className="font-medium text-ink-900">{p.resolutionDpi} dpi × {p.resolutionDpi} dpi</span>
+                <span>Method:</span><span className="font-medium text-ink-900">{p.mediaMethod}</span>
+                <span>Dithering:</span><span className="font-medium text-ink-900">{p.dithering}</span>
+                <span>Color:</span><span className="font-medium text-ink-900">{p.colorControl}</span>
+                <span>Speed:</span><span className="font-medium text-ink-900">{p.printSpeedInSec} in/sec</span>
+                <span>Darkness:</span><span className="font-medium text-ink-900">{p.darkness}</span>
+                <span>Post-print:</span><span className="font-medium text-ink-900">{p.postPrintAction}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -142,9 +376,8 @@ export default function AdminPrintSettings() {
   const [tab, setTab] = useState<Tab>("receipt");
   const [s, setS] = useState<ReceiptSettings>(() => loadReceiptSettings());
   const [saved, setSaved] = useState(false);
-  const [newPrinter, setNewPrinter] = useState<Omit<PrinterConfig, "id">>({
-    name: "", type: "thermal", paperWidth: "72mm",
-  });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
 
   function update<K extends keyof ReceiptSettings>(key: K, value: ReceiptSettings[K]) {
     setS((prev) => ({ ...prev, [key]: value }));
@@ -157,11 +390,22 @@ export default function AdminPrintSettings() {
   }
 
   function addPrinter() {
-    if (!newPrinter.name.trim()) return;
-    const printer: PrinterConfig = { ...newPrinter, id: Date.now().toString() };
-    const printers = [...s.printers, printer];
-    setS((prev) => ({ ...prev, printers }));
-    setNewPrinter({ name: "", type: "thermal", paperWidth: "72mm" });
+    if (!newName.trim()) return;
+    const printer: PrinterConfig = {
+      id: Date.now().toString(),
+      name: newName.trim(),
+      ...DEFAULT_PRINTER,
+    };
+    setS((prev) => ({ ...prev, printers: [...prev.printers, printer] }));
+    setNewName("");
+    setExpandedId(printer.id);
+  }
+
+  function updatePrinter(updated: PrinterConfig) {
+    setS((prev) => ({
+      ...prev,
+      printers: prev.printers.map((p) => p.id === updated.id ? updated : p),
+    }));
   }
 
   function deletePrinter(id: string) {
@@ -170,6 +414,7 @@ export default function AdminPrintSettings() {
       printers: prev.printers.filter((p) => p.id !== id),
       defaultPrinterId: prev.defaultPrinterId === id ? "" : prev.defaultPrinterId,
     }));
+    if (expandedId === id) setExpandedId(null);
   }
 
   function setDefault(id: string) {
@@ -208,16 +453,18 @@ export default function AdminPrintSettings() {
         >
           <Printer className="h-4 w-4" />
           Printers
+          {s.printers.length > 0 && (
+            <span className="ml-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700">
+              {s.printers.length}
+            </span>
+          )}
         </button>
       </div>
 
       {/* ── RECEIPT TEMPLATE TAB ── */}
       {tab === "receipt" && (
         <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-          {/* Left: settings */}
           <div className="space-y-4">
-
-            {/* Company Info */}
             <Card className="p-5">
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-800">
                 <Settings2 className="h-4 w-4 text-brand-500" />
@@ -242,7 +489,6 @@ export default function AdminPrintSettings() {
               </div>
             </Card>
 
-            {/* Font */}
             <Card className="p-5">
               <div className="mb-3 text-sm font-semibold text-ink-800">Font & Size</div>
               <div className="space-y-3">
@@ -267,7 +513,6 @@ export default function AdminPrintSettings() {
               </div>
             </Card>
 
-            {/* Bold options */}
             <Card className="p-5">
               <div className="mb-1 text-sm font-semibold text-ink-800">Bold Options</div>
               <Toggle checked={s.boldCompanyName} onChange={(v) => update("boldCompanyName", v)} label="Bold company name" />
@@ -275,7 +520,6 @@ export default function AdminPrintSettings() {
               <Toggle checked={s.boldTotal} onChange={(v) => update("boldTotal", v)} label="Bold total amount" />
             </Card>
 
-            {/* Sections */}
             <Card className="p-5">
               <div className="mb-1 text-sm font-semibold text-ink-800">What to Show</div>
               <Toggle checked={s.showCompanyHeader} onChange={(v) => update("showCompanyHeader", v)} label="Company name header" />
@@ -294,7 +538,6 @@ export default function AdminPrintSettings() {
               <Toggle checked={s.showFooter} onChange={(v) => update("showFooter", v)} label="Footer message" />
             </Card>
 
-            {/* Footer */}
             <Card className="p-5">
               <Field label="Footer message">
                 <input
@@ -311,16 +554,12 @@ export default function AdminPrintSettings() {
                 <Save className="h-4 w-4" />
                 {saved ? "Saved!" : "Save Changes"}
               </Btn>
-              <Btn
-                variant="secondary"
-                onClick={() => setS({ ...DEFAULT_RECEIPT_SETTINGS })}
-              >
+              <Btn variant="secondary" onClick={() => setS({ ...DEFAULT_RECEIPT_SETTINGS })}>
                 Reset Defaults
               </Btn>
             </div>
           </div>
 
-          {/* Right: live preview */}
           <div className="sticky top-4 self-start">
             <ReceiptPreview s={s} />
             <p className="mt-2 text-center text-[11px] text-ink-400">
@@ -332,105 +571,135 @@ export default function AdminPrintSettings() {
 
       {/* ── PRINTERS TAB ── */}
       {tab === "printers" && (
-        <div className="max-w-2xl space-y-6">
+        <div className="max-w-3xl space-y-4">
+
+          {/* Add printer */}
           <Card className="p-5">
-            <div className="mb-4 text-sm font-semibold text-ink-800 flex items-center gap-2">
+            <div className="mb-3 text-sm font-semibold text-ink-800 flex items-center gap-2">
               <Plus className="h-4 w-4 text-brand-500" /> Add Printer
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Printer name">
-                <input
-                  className="input"
-                  placeholder="e.g. POS80ENG Counter"
-                  value={newPrinter.name}
-                  onChange={(e) => setNewPrinter((p) => ({ ...p, name: e.target.value }))}
-                />
-              </Field>
-              <Field label="Type">
-                <select className="input" value={newPrinter.type} onChange={(e) => setNewPrinter((p) => ({ ...p, type: e.target.value as PrinterConfig["type"] }))}>
-                  {PRINTER_TYPES.map((t) => <option key={t} value={t} className="capitalize">{t}</option>)}
-                </select>
-              </Field>
-              <Field label="Paper width">
-                <select className="input" value={newPrinter.paperWidth} onChange={(e) => setNewPrinter((p) => ({ ...p, paperWidth: e.target.value as PrinterConfig["paperWidth"] }))}>
-                  {PAPER_WIDTHS.map((w) => <option key={w} value={w}>{w}</option>)}
-                </select>
-              </Field>
-            </div>
-            <div className="mt-3">
-              <Btn onClick={addPrinter} disabled={!newPrinter.name.trim()}>
-                <Plus className="h-4 w-4" /> Add Printer
+            <div className="flex gap-3">
+              <input
+                className="input flex-1"
+                placeholder='Printer name — e.g. "4BARCODE 4B-2054K Counter"'
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addPrinter()}
+              />
+              <Btn onClick={addPrinter} disabled={!newName.trim()}>
+                <Plus className="h-4 w-4" /> Add
               </Btn>
             </div>
+            <p className="mt-2 text-[11px] text-ink-400">
+              After adding, expand the printer card to configure all driver settings (Page Setup, Graphics, Stock, Options).
+            </p>
           </Card>
 
+          {/* Printer list */}
           {s.printers.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-ink-200 py-12 text-ink-400">
               <Printer className="h-8 w-8 mb-2 opacity-40" />
               <p className="text-sm">No printers added yet</p>
+              <p className="text-[11px] mt-1">Add a printer above and configure its driver settings</p>
             </div>
           ) : (
-            <Card className="overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-ink-50 text-xs uppercase tracking-wider text-ink-500">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Printer Name</th>
-                    <th className="px-4 py-3 text-left">Type</th>
-                    <th className="px-4 py-3 text-left">Paper</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100">
-                  {s.printers.map((p) => (
-                    <tr key={p.id} className={`hover:bg-ink-50/60 ${p.id === s.defaultPrinterId ? "bg-brand-50/40" : ""}`}>
-                      <td className="px-4 py-3 font-medium text-ink-900">
+            <div className="space-y-3">
+              {s.printers.map((p) => (
+                <div
+                  key={p.id}
+                  className={`rounded-xl border overflow-hidden transition-colors ${
+                    p.id === s.defaultPrinterId ? "border-brand-300 bg-brand-50/30" : "border-ink-200 bg-white"
+                  }`}
+                >
+                  {/* Printer header row */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <Printer className="h-4 w-4 text-ink-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-ink-900 flex items-center gap-2 flex-wrap">
                         {p.name}
                         {p.id === s.defaultPrinterId && (
-                          <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">Default</span>
+                          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">Default</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 capitalize text-ink-600">{p.type}</td>
-                      <td className="px-4 py-3 text-ink-600">{p.paperWidth}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          {p.id !== s.defaultPrinterId && (
-                            <button
-                              onClick={() => setDefault(p.id)}
-                              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
-                            >
-                              <Star className="h-3 w-3" /> Set Default
-                            </button>
-                          )}
-                          <button
-                            onClick={() => deletePrinter(p.id)}
-                            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" /> Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+                      </div>
+                      <div className="text-[11px] text-ink-400 mt-0.5">
+                        {p.stockName} · {p.labelWidthIn} × {p.labelHeightIn} in · {p.resolutionDpi} dpi · {p.mediaMethod} · Darkness {p.darkness}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {p.id !== s.defaultPrinterId && (
+                        <button
+                          onClick={() => setDefault(p.id)}
+                          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-amber-700 hover:bg-amber-50 transition-colors"
+                        >
+                          <Star className="h-3 w-3" /> Default
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deletePrinter(p.id)}
+                        className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" /> Remove
+                      </button>
+                      <button
+                        onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                        className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-ink-600 hover:bg-ink-100 transition-colors"
+                      >
+                        {expandedId === p.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {expandedId === p.id ? "Collapse" : "Configure"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded: driver properties (4-tab panel) */}
+                  {expandedId === p.id && (
+                    <div className="border-t border-ink-200 p-4 bg-ink-50/40">
+                      <PrinterPropertiesPanel p={p} onChange={updatePrinter} />
+                      <div className="mt-3 flex justify-end">
+                        <Btn onClick={handleSave}>
+                          <Save className="h-4 w-4" /> Save All Settings
+                        </Btn>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
+          {/* Help note */}
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-[11px] font-semibold text-blue-800 mb-1">How printing works</p>
-            <ul className="list-disc list-inside space-y-0.5 text-[11px] text-blue-700">
-              <li>Click <strong>Print</strong> on any receipt or QR label to open the browser print dialog</li>
-              <li>Select your printer from the dialog — Windows will show all installed printers</li>
-              <li>Set paper size to match your printer (72mm for POS80ENG)</li>
-              <li>Use <strong>"Actual size"</strong> in print settings, not Fit to Page</li>
-              <li>Printer names here are for your reference only</li>
-            </ul>
+            <p className="text-[11px] font-semibold text-blue-800 mb-1">These settings match your 4BARCODE driver</p>
+            <p className="text-[11px] text-blue-700 mb-2">
+              Configure each printer to match exactly what you see in Adobe → Properties → 4BARCODE 4B-2054K Properties.
+              The 4-tab panel (Page Setup / Graphics / Stock / Options) mirrors the driver dialog.
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 text-[11px] text-blue-700">
+              <div>
+                <span className="font-semibold">Recommended for 4BARCODE:</span>
+                <ul className="list-disc list-inside mt-0.5 space-y-0.5">
+                  <li>Stock: 小标签 · 1.97 × 1.18 in</li>
+                  <li>Source: Continuous Roll</li>
+                  <li>Resolution: 203 dpi</li>
+                  <li>Dithering: None</li>
+                </ul>
+              </div>
+              <div>
+                <ul className="list-disc list-inside mt-4 space-y-0.5">
+                  <li>Color: Monochrome</li>
+                  <li>Method: Direct Thermal</li>
+                  <li>Type: Labels With Gaps · Gap: 0.12 in</li>
+                  <li>Speed: 6 in/sec · Darkness: 8</li>
+                </ul>
+              </div>
+            </div>
           </div>
 
-          <Btn onClick={handleSave}>
-            <Save className="h-4 w-4" />
-            {saved ? "Saved!" : "Save Changes"}
-          </Btn>
+          {s.printers.length > 0 && (
+            <Btn onClick={handleSave}>
+              <Save className="h-4 w-4" />
+              {saved ? "Saved!" : "Save Changes"}
+            </Btn>
+          )}
         </div>
       )}
     </PageShell>
