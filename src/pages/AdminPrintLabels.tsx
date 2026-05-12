@@ -265,7 +265,19 @@ export default function AdminPrintLabels() {
     document.head.appendChild(style);
     setShowPrintSheet(true);
     await new Promise<void>((r) => setTimeout(r, 400));
-    window.print();
+
+    const eAPI = (window as any).electronAPI;
+    if (eAPI?.printToPrinter) {
+      await eAPI.printToPrinter({
+        silent: false,
+        widthMicrons: Math.round(wCm * 10000),
+        heightMicrons: Math.round(hCm * 10000),
+        copies: settings.copies,
+      });
+    } else {
+      window.print();
+    }
+
     setShowPrintSheet(false);
     document.head.removeChild(style);
   }
@@ -697,8 +709,8 @@ export default function AdminPrintLabels() {
               <p className="text-[11px] font-semibold text-emerald-700 mb-0.5">✓ Print Direct (recommended)</p>
               <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-blue-700">
                 <li>Select QR codes on the left</li>
-                <li>Click <strong>Print Direct</strong> (green button) — opens browser print dialog</li>
-                <li>Pick your <strong>label printer</strong> from the dialog</li>
+                <li>Click <strong>Print Direct</strong> (green button) — opens Windows print dialog</li>
+                <li>Pick your <strong>label printer</strong> (e.g. 4BARCODE 4B-2054K) from the list</li>
                 <li>Set Scale to <strong>"Actual size"</strong> or 100% → Print</li>
               </ol>
             </div>

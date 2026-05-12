@@ -212,6 +212,29 @@ ipcMain.handle("open-file-dialog", async () => {
 
 ipcMain.handle("get-app-version", () => app.getVersion());
 
+ipcMain.handle("get-printers", async () => {
+  if (!mainWindow) return [];
+  const printers = await mainWindow.webContents.getPrintersAsync();
+  return printers.map((p) => ({ name: p.name, isDefault: p.isDefault }));
+});
+
+ipcMain.handle("print-to-printer", (_e, { deviceName, widthMicrons, heightMicrons, silent, copies }) => {
+  return new Promise((resolve) => {
+    if (!mainWindow) return resolve({ success: false, error: "No window" });
+    const opts = {
+      silent: silent ?? false,
+      copies: copies ?? 1,
+      ...(deviceName ? { deviceName } : {}),
+      pageSize: (widthMicrons && heightMicrons)
+        ? { width: widthMicrons, height: heightMicrons }
+        : undefined,
+    };
+    mainWindow.webContents.print(opts, (success, reason) => {
+      resolve({ success, reason: reason ?? null });
+    });
+  });
+});
+
 // ── App lifecycle ────────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
