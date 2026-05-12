@@ -1,8 +1,68 @@
 export type PrinterConfig = {
   id: string;
   name: string;
-  type: "thermal" | "laser" | "inkjet";
-  paperWidth: "58mm" | "72mm" | "80mm" | "A4";
+
+  // ── Page Setup ──────────────────────────────────────────────
+  stockName: string;
+  labelWidthIn: number;
+  labelHeightIn: number;
+  paperSource: "Continuous Roll" | "Cut Sheet" | "Manual Feed";
+  orientation: "Portrait" | "Landscape" | "Portrait 180°" | "Landscape 180°";
+  marginLeft: number;
+  marginRight: number;
+  marginTop: number;
+  marginBottom: number;
+
+  // ── Graphics ─────────────────────────────────────────────────
+  resolutionDpi: number;
+  dithering: "None" | "Halftone" | "Ordered" | "Algebraic" | "Error Diffusion";
+  colorControl: "Monochrome" | "Color";
+  mirrorImage: boolean;
+  negative: boolean;
+
+  // ── Stock ────────────────────────────────────────────────────
+  mediaMethod: "Direct Thermal" | "Thermal Transfer";
+  mediaType: "Labels With Gaps" | "Continuous" | "Black Mark" | "Die Cut";
+  gapHeightIn: number;
+  gapOffsetIn: number;
+  postPrintAction: "Tear Off" | "Peel" | "Rewind" | "None";
+  feedOffsetIn: number;
+
+  // ── Options ──────────────────────────────────────────────────
+  printSpeedInSec: number;
+  darkness: number;
+  directToBuffer: "Automatic" | "On" | "Off";
+  storedGraphics: "Automatic" | "On" | "Off";
+};
+
+export const DEFAULT_PRINTER: Omit<PrinterConfig, "id" | "name"> = {
+  stockName: "小标签(Small label)",
+  labelWidthIn: 1.97,
+  labelHeightIn: 1.18,
+  paperSource: "Continuous Roll",
+  orientation: "Portrait",
+  marginLeft: 1,
+  marginRight: 1,
+  marginTop: 0.463,
+  marginBottom: 0.463,
+
+  resolutionDpi: 203,
+  dithering: "None",
+  colorControl: "Monochrome",
+  mirrorImage: false,
+  negative: false,
+
+  mediaMethod: "Direct Thermal",
+  mediaType: "Labels With Gaps",
+  gapHeightIn: 0.12,
+  gapOffsetIn: 0.00,
+  postPrintAction: "Tear Off",
+  feedOffsetIn: 0.00,
+
+  printSpeedInSec: 6.0,
+  darkness: 8,
+  directToBuffer: "Automatic",
+  storedGraphics: "Automatic",
 };
 
 export type ReceiptSettings = {
