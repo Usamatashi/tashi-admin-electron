@@ -175,6 +175,10 @@ export default function AdminPrintLabels() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [showPrintSheet, setShowPrintSheet] = useState(false);
+  const [showPrinterPicker, setShowPrinterPicker] = useState(false);
+  const [availablePrinters, setAvailablePrinters] = useState<{ name: string; isDefault: boolean }[]>([]);
+  const [pickedPrinter, setPickedPrinter] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     adminMe().catch(() => navigate("/admin/login", { replace: true }));
@@ -251,6 +255,19 @@ export default function AdminPrintLabels() {
 
   async function handleDirectPrint() {
     if (!canGenerate) return;
+    const eAPI = (window as any).electronAPI;
+    if (eAPI?.getPrinters) {
+      const printers = await eAPI.getPrinters();
+      setAvailablePrinters(printers);
+      const def = printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
+      setPickedPrinter(def);
+      setShowPrinterPicker(true);
+    } else {
+      await doWindowPrint();
+    }
+  }
+
+  async function doWindowPrint() {
     const wCm = settings.width;
     const hCm = settings.height;
     const style = document.createElement("style");
@@ -265,21 +282,40 @@ export default function AdminPrintLabels() {
     document.head.appendChild(style);
     setShowPrintSheet(true);
     await new Promise<void>((r) => setTimeout(r, 400));
-
-    const eAPI = (window as any).electronAPI;
-    if (eAPI?.printToPrinter) {
-      await eAPI.printToPrinter({
-        silent: false,
-        widthMicrons: Math.round(wCm * 10000),
-        heightMicrons: Math.round(hCm * 10000),
-        copies: settings.copies,
-      });
-    } else {
-      window.print();
-    }
-
+    window.print();
     setShowPrintSheet(false);
     document.head.removeChild(style);
+  }
+
+  async function doElectronPrint() {
+    if (!pickedPrinter) return;
+    setPrinting(true);
+    const wCm = settings.width;
+    const hCm = settings.height;
+    const style = document.createElement("style");
+    style.id = "qr-direct-print-style";
+    style.textContent = `
+      @media print {
+        @page { size: ${wCm}cm ${hCm}cm; margin: 0; }
+        body > * { display: none !important; }
+        #qr-direct-print-sheet { display: block !important; }
+      }
+    `;
+    document.head.appendChild(style);
+    setShowPrinterPicker(false);
+    setShowPrintSheet(true);
+    await new Promise<void>((r) => setTimeout(r, 400));
+    const eAPI = (window as any).electronAPI;
+    await eAPI.printToPrinter({
+      deviceName: pickedPrinter,
+      silent: true,
+      widthMicrons: Math.round(wCm * 10000),
+      heightMicrons: Math.round(hCm * 10000),
+      copies: settings.copies,
+    });
+    setShowPrintSheet(false);
+    document.head.removeChild(style);
+    setPrinting(false);
   }
 
   async function handleGeneratePDF() {
@@ -1217,6 +1253,68 @@ export default function AdminPrintLabels() {
               ))}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Electron printer picker modal ── */}
+      {showPrinterPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-96 rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-ink-100 px-5 py-4">
+              <Printer className="h-5 w-5 text-brand-600" />
+              <h2 className="text-base font-semibold text-ink-900">Select Printer</h2>
+            </div>
+            <div className="max-h-72 overflow-y-auto px-3 py-3">
+              {availablePrinters.length === 0 ? (
+                <p className="py-6 text-center text-sm text-ink-400">No printers found</p>
+              ) : (
+                availablePrinters.map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => setPickedPrinter(p.name)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+                      pickedPrinter === p.name
+                        ? "bg-brand-50 text-brand-700"
+                        : "text-ink-700 hover:bg-ink-50",
+                    )}
+                  >
+                    <Printer className="h-4 w-4 shrink-0 text-ink-400" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      {p.isDefault && (
+                        <p className="text-[11px] text-ink-400">Default printer</p>
+                      )}
+                    </div>
+                    {pickedPrinter === p.name && (
+                      <div className="h-2 w-2 shrink-0 rounded-full bg-brand-500" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-ink-100 px-5 py-4">
+              <button
+                onClick={() => setShowPrinterPicker(false)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doElectronPrint}
+                disabled={!pickedPrinter || printing}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors",
+                  pickedPrinter && !printing
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "cursor-not-allowed bg-ink-300",
+                )}
+              >
+                <Printer className="h-4 w-4" />
+                {printing ? "Printing…" : "Print"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
