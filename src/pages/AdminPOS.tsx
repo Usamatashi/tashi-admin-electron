@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import JsBarcode from "jsbarcode";
 import { Search, Plus, Minus, Trash2, ShoppingCart, X, User, ChevronDown, Printer, Check, Wrench, Store } from "lucide-react";
 import {
   adminListProducts, adminListStock, adminListAllPOSCustomers, adminCreatePOSSale,
-  adminCreatePOSCustomer, formatPrice,
+  adminCreatePOSCustomer, adminMe, formatPrice,
   type AdminProduct, type StockItem, type POSCustomer,
 } from "@/lib/admin";
 import { Loading, Btn, ErrorBanner, Field, Modal } from "@/components/admin/ui";
@@ -30,6 +31,189 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   consumer: User,
 };
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtReceiptDate(d: Date) {
+  const day  = String(d.getDate()).padStart(2, "0");
+  const mon  = MONTHS[d.getMonth()];
+  const yr   = String(d.getFullYear()).slice(2);
+  const h    = d.getHours();
+  const mm   = String(d.getMinutes()).padStart(2, "0");
+  const ss   = String(d.getSeconds()).padStart(2, "0");
+  const ap   = h >= 12 ? "PM" : "AM";
+  const h12  = String(h % 12 || 12).padStart(2, "0");
+  return `${day}-${mon}-${yr} ${h12}:${mm}:${ss} ${ap}`;
+}
+function fmtRs(v: number) { return `Rs${Math.round(v).toLocaleString()}`; }
+
+type ReceiptSale = {
+  saleNumber: string;
+  items: CartItem[];
+  subtotal: number;
+  discountAmount: number;
+  total: number;
+  paymentMethod: string;
+  cashReceived: number;
+  change: number;
+  customerName: string;
+  customerType: string;
+  saleDate: Date;
+  userName: string;
+};
+
+function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
+  const barcodeRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (barcodeRef.current) {
+      try {
+        JsBarcode(barcodeRef.current, sale.saleNumber, {
+          format: "CODE128",
+          width: 1.8,
+          height: 48,
+          displayValue: true,
+          fontSize: 11,
+          margin: 2,
+          background: "#ffffff",
+          lineColor: "#000000",
+        });
+      } catch { /* ignore */ }
+    }
+  }, [sale.saleNumber]);
+
+  const S: React.CSSProperties = {
+    fontFamily: "Arial, 'Helvetica Neue', Helvetica, sans-serif",
+    fontSize: "11pt",
+    color: "#000",
+    lineHeight: "1.5",
+    width: "100%",
+  };
+  const tbl: React.CSSProperties = { width: "100%", borderCollapse: "collapse" };
+  const tdL: React.CSSProperties = { verticalAlign: "top", paddingBottom: "2pt" };
+  const tdR: React.CSSProperties = { verticalAlign: "top", textAlign: "right", whiteSpace: "nowrap", paddingLeft: "6pt", paddingBottom: "2pt" };
+  const dash: React.CSSProperties = { borderTop: "1px dashed #000", margin: "5pt 0" };
+  const solid: React.CSSProperties = { borderTop: "1.5px solid #000", margin: "3pt 0" };
+
+  return (
+    <div className="thermal-receipt hidden" style={S}>
+      {/* Company header */}
+      <div style={{ textAlign: "center", paddingBottom: "4pt" }}>
+        <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: "1.3" }}>Tashi Brakes (pvt)</div>
+        <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: "1.3" }}>Ltd</div>
+        <div style={{ fontSize: "10pt", marginTop: "3pt" }}>1122 Street Dar-ul-Islam Colony</div>
+        <div style={{ fontSize: "10pt" }}>Attock</div>
+        <div style={{ fontSize: "10.5pt", marginTop: "2pt" }}>03055198651</div>
+      </div>
+
+      <div style={dash} />
+
+      {/* Meta */}
+      <table style={tbl}><tbody>
+        <tr>
+          <td style={tdL}>Receipt No.:</td>
+          <td style={tdR}>{sale.saleNumber}</td>
+        </tr>
+        <tr>
+          <td style={tdL}>{fmtReceiptDate(sale.saleDate)}</td>
+        </tr>
+        <tr>
+          <td style={tdL}>User:</td>
+          <td style={tdR}>{sale.userName}</td>
+        </tr>
+        <tr>
+          <td style={tdL}>Customer:</td>
+          <td style={tdR}>{sale.customerName}</td>
+        </tr>
+      </tbody></table>
+
+      <div style={dash} />
+
+      {/* Items */}
+      <table style={tbl}><tbody>
+        {sale.items.map((item, i) => (
+          <React.Fragment key={i}>
+            <tr>
+              <td style={{ ...tdL, fontWeight: "bold" }} colSpan={2}>
+                {item.sku ? `${item.sku}  ` : ""}{item.productName}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ ...tdL, fontSize: "10.5pt", paddingBottom: "5pt" }}>
+                {item.qty} x {fmtRs(item.unitPrice)}
+              </td>
+              <td style={{ ...tdR, fontSize: "10.5pt", paddingBottom: "5pt" }}>
+                {fmtRs(item.lineTotal)}
+              </td>
+            </tr>
+          </React.Fragment>
+        ))}
+      </tbody></table>
+
+      <table style={tbl}><tbody>
+        <tr>
+          <td style={tdL}>Items count: {sale.items.reduce((a, i) => a + i.qty, 0)}</td>
+        </tr>
+      </tbody></table>
+
+      <div style={dash} />
+
+      {/* Subtotal + discount */}
+      {sale.discountAmount > 0 && (
+        <table style={tbl}><tbody>
+          <tr>
+            <td style={tdL}>Subtotal:</td>
+            <td style={tdR}>{fmtRs(sale.subtotal)}</td>
+          </tr>
+          <tr>
+            <td style={tdL}>Discount:</td>
+            <td style={tdR}>-{fmtRs(sale.discountAmount)}</td>
+          </tr>
+        </tbody></table>
+      )}
+
+      <div style={solid} />
+
+      {/* TOTAL */}
+      <table style={tbl}><tbody>
+        <tr style={{ fontWeight: "bold", fontSize: "13pt" }}>
+          <td style={tdL}>TOTAL:</td>
+          <td style={tdR}>{fmtRs(sale.total)}</td>
+        </tr>
+      </tbody></table>
+
+      <div style={dash} />
+
+      {/* Payment */}
+      <table style={tbl}><tbody>
+        <tr>
+          <td style={tdL}>Cash:</td>
+          <td style={tdR}>{fmtRs(sale.paymentMethod === "cash" ? sale.cashReceived : sale.total)}</td>
+        </tr>
+        <tr>
+          <td style={tdL}>Paid amount:</td>
+          <td style={tdR}>{fmtRs(sale.total)}</td>
+        </tr>
+        {sale.paymentMethod === "cash" && sale.change > 0 && (
+          <tr>
+            <td style={{ ...tdL, fontWeight: "bold" }}>Change:</td>
+            <td style={{ ...tdR, fontWeight: "bold" }}>{fmtRs(sale.change)}</td>
+          </tr>
+        )}
+      </tbody></table>
+
+      <div style={dash} />
+
+      {/* Barcode */}
+      <div style={{ textAlign: "center", paddingTop: "4pt" }}>
+        <svg ref={barcodeRef} style={{ maxWidth: "100%" }} />
+      </div>
+
+      <div style={{ textAlign: "center", fontSize: "9.5pt", paddingTop: "6pt" }}>
+        Thank you for your business!
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPOS() {
   const [products, setProducts]   = useState<AdminProduct[]>([]);
   const [stock, setStock]         = useState<Map<number, StockItem>>(new Map());
@@ -48,11 +232,8 @@ export default function AdminPOS() {
   const [notes, setNotes]         = useState("");
   const [completing, setCompleting] = useState(false);
   const [err, setErr]             = useState<string | null>(null);
-  const [receiptSale, setReceiptSale] = useState<{
-    saleNumber: string; items: CartItem[]; subtotal: number; discountAmount: number;
-    total: number; paymentMethod: string; cashReceived: number; change: number;
-    customerName: string; customerType: string;
-  } | null>(null);
+  const [currentUserName, setCurrentUserName] = useState("Cashier");
+  const [receiptSale, setReceiptSale] = useState<ReceiptSale | null>(null);
 
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustForm, setNewCustForm] = useState({ name: "", phone: "", city: "" });
@@ -63,16 +244,18 @@ export default function AdminPOS() {
   useEffect(() => {
     (async () => {
       try {
-        const [prods, stk, custs] = await Promise.all([
+        const [prods, stk, custs, me] = await Promise.all([
           adminListProducts(),
           adminListStock(),
           adminListAllPOSCustomers(),
+          adminMe().catch(() => null),
         ]);
         setProducts(prods);
         const stockMap = new Map<number, StockItem>();
         for (const s of stk) stockMap.set(s.productId, s);
         setStock(stockMap);
         setAllCustomers([...custs.mechanics, ...custs.retailers, ...custs.consumers]);
+        if (me?.admin?.name) setCurrentUserName(me.admin.name);
       } finally {
         setLoading(false);
       }
@@ -140,6 +323,8 @@ export default function AdminPOS() {
         paymentMethod, cashReceived: cashRec, change,
         customerName: selectedCustomer?.name || "Walk-in",
         customerType: selectedCustomer?.customerType || "consumer",
+        saleDate: new Date(),
+        userName: currentUserName,
       });
       setCart([]); setDiscountPct(0); setCashReceived(""); setSelectedCustomer(null); setNotes("");
     } catch (e: unknown) {
@@ -221,103 +406,8 @@ export default function AdminPOS() {
           <div className="mt-4 border-t border-dashed border-ink-200 pt-3 text-center text-[10px] text-ink-400">Thank you for your business!</div>
         </div>
 
-        {/* ── Thermal print receipt (hidden on screen, visible when printing) ── */}
-        <div className="thermal-receipt hidden">
-          {/* Header */}
-          <div style={{ textAlign: "center", paddingBottom: "5pt" }}>
-            <div style={{ fontWeight: "bold", fontSize: "13pt", letterSpacing: "0.5pt" }}>TASHI BRAKES</div>
-            <div style={{ fontSize: "9pt" }}>Point of Sale Receipt</div>
-            <div style={{ fontSize: "9.5pt", fontWeight: "bold", marginTop: "2pt" }}>{receiptSale.saleNumber}</div>
-          </div>
-
-          <div className="dashed" />
-
-          {/* Customer info */}
-          <table>
-            <tbody>
-              <tr>
-                <td>Customer:</td>
-                <td className="price-col">{receiptSale.customerName}</td>
-              </tr>
-              <tr>
-                <td>Payment:</td>
-                <td className="price-col" style={{ textTransform: "capitalize" }}>{receiptSale.paymentMethod}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="dashed" />
-
-          {/* Items */}
-          <table>
-            <tbody>
-              {receiptSale.items.map((item, i) => (
-                <tr key={i}>
-                  <td style={{ width: "63%", paddingBottom: "4pt" }}>
-                    <div style={{ wordBreak: "break-word" }}>{item.productName}</div>
-                    <div style={{ fontSize: "9pt" }}>{item.qty} x {formatPrice(item.unitPrice)}</div>
-                  </td>
-                  <td className="price-col" style={{ paddingBottom: "4pt" }}>
-                    {formatPrice(item.lineTotal)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="dashed" />
-
-          {/* Totals */}
-          <table>
-            <tbody>
-              <tr>
-                <td>Subtotal:</td>
-                <td className="price-col">{formatPrice(receiptSale.subtotal)}</td>
-              </tr>
-              {receiptSale.discountAmount > 0 && (
-                <tr>
-                  <td>Discount:</td>
-                  <td className="price-col">-{formatPrice(receiptSale.discountAmount)}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="solid" />
-
-          <table>
-            <tbody>
-              <tr style={{ fontWeight: "bold", fontSize: "12pt" }}>
-                <td>TOTAL:</td>
-                <td className="price-col">{formatPrice(receiptSale.total)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {receiptSale.paymentMethod === "cash" && (
-            <>
-              <div className="dashed" />
-              <table>
-                <tbody>
-                  <tr>
-                    <td>Cash:</td>
-                    <td className="price-col">{formatPrice(receiptSale.cashReceived)}</td>
-                  </tr>
-                  <tr style={{ fontWeight: "bold" }}>
-                    <td>Change:</td>
-                    <td className="price-col">{formatPrice(receiptSale.change)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </>
-          )}
-
-          <div className="dashed" />
-
-          <div style={{ textAlign: "center", fontSize: "9pt", paddingTop: "3pt" }}>
-            Thank you for your business!
-          </div>
-        </div>
+        {/* ── Thermal print receipt ── */}
+        <ThermalReceipt sale={receiptSale} />
 
         {/* Buttons */}
         <div className="mt-4 flex gap-2 print:hidden">
