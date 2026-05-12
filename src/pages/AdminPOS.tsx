@@ -175,7 +175,9 @@ export default function AdminPOS() {
     const CustIcon = TYPE_ICON[receiptSale.customerType] ?? User;
     return (
       <div className="mx-auto max-w-sm py-8 px-4">
-        <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-sm print:shadow-none">
+
+        {/* ── Screen receipt (hidden when printing) ── */}
+        <div className="print:hidden rounded-2xl border border-ink-200 bg-white p-6 shadow-sm">
           <div className="border-b border-dashed border-ink-200 pb-4 text-center">
             <div className="font-display text-xl font-bold text-ink-900">Tashi Brakes</div>
             <div className="text-xs text-ink-500">Point of Sale Receipt</div>
@@ -199,7 +201,7 @@ export default function AdminPOS() {
                   <div className="text-ink-800">{item.productName}</div>
                   <div className="text-xs text-ink-400">{item.qty} × {formatPrice(item.unitPrice)}</div>
                 </div>
-                <div className="font-medium text-ink-900">{formatPrice(item.lineTotal)}</div>
+                <div className="font-medium text-ink-900 ml-2 shrink-0">{formatPrice(item.lineTotal)}</div>
               </div>
             ))}
           </div>
@@ -218,6 +220,106 @@ export default function AdminPOS() {
           </div>
           <div className="mt-4 border-t border-dashed border-ink-200 pt-3 text-center text-[10px] text-ink-400">Thank you for your business!</div>
         </div>
+
+        {/* ── Thermal print receipt (hidden on screen, visible when printing) ── */}
+        <div className="thermal-receipt hidden">
+          {/* Header */}
+          <div style={{ textAlign: "center", paddingBottom: "5pt" }}>
+            <div style={{ fontWeight: "bold", fontSize: "13pt", letterSpacing: "0.5pt" }}>TASHI BRAKES</div>
+            <div style={{ fontSize: "9pt" }}>Point of Sale Receipt</div>
+            <div style={{ fontSize: "9.5pt", fontWeight: "bold", marginTop: "2pt" }}>{receiptSale.saleNumber}</div>
+          </div>
+
+          <div className="dashed" />
+
+          {/* Customer info */}
+          <table>
+            <tbody>
+              <tr>
+                <td>Customer:</td>
+                <td className="price-col">{receiptSale.customerName}</td>
+              </tr>
+              <tr>
+                <td>Payment:</td>
+                <td className="price-col" style={{ textTransform: "capitalize" }}>{receiptSale.paymentMethod}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="dashed" />
+
+          {/* Items */}
+          <table>
+            <tbody>
+              {receiptSale.items.map((item, i) => (
+                <tr key={i}>
+                  <td style={{ width: "63%", paddingBottom: "4pt" }}>
+                    <div style={{ wordBreak: "break-word" }}>{item.productName}</div>
+                    <div style={{ fontSize: "9pt" }}>{item.qty} x {formatPrice(item.unitPrice)}</div>
+                  </td>
+                  <td className="price-col" style={{ paddingBottom: "4pt" }}>
+                    {formatPrice(item.lineTotal)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="dashed" />
+
+          {/* Totals */}
+          <table>
+            <tbody>
+              <tr>
+                <td>Subtotal:</td>
+                <td className="price-col">{formatPrice(receiptSale.subtotal)}</td>
+              </tr>
+              {receiptSale.discountAmount > 0 && (
+                <tr>
+                  <td>Discount:</td>
+                  <td className="price-col">-{formatPrice(receiptSale.discountAmount)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <div className="solid" />
+
+          <table>
+            <tbody>
+              <tr style={{ fontWeight: "bold", fontSize: "12pt" }}>
+                <td>TOTAL:</td>
+                <td className="price-col">{formatPrice(receiptSale.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {receiptSale.paymentMethod === "cash" && (
+            <>
+              <div className="dashed" />
+              <table>
+                <tbody>
+                  <tr>
+                    <td>Cash:</td>
+                    <td className="price-col">{formatPrice(receiptSale.cashReceived)}</td>
+                  </tr>
+                  <tr style={{ fontWeight: "bold" }}>
+                    <td>Change:</td>
+                    <td className="price-col">{formatPrice(receiptSale.change)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
+          )}
+
+          <div className="dashed" />
+
+          <div style={{ textAlign: "center", fontSize: "9pt", paddingTop: "3pt" }}>
+            Thank you for your business!
+          </div>
+        </div>
+
+        {/* Buttons */}
         <div className="mt-4 flex gap-2 print:hidden">
           <Btn variant="secondary" className="flex-1" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print</Btn>
           <Btn className="flex-1" onClick={() => setReceiptSale(null)}><Plus className="h-4 w-4" /> New Sale</Btn>
