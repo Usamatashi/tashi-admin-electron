@@ -14,6 +14,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    commonjsOptions: {
+      include: [/jsbarcode/, /node_modules/],
+    },
+  },
+  optimizeDeps: {
+    include: ["jsbarcode"],
   },
   server: {
     port: 5000,
