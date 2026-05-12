@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import JsBarcode from "jsbarcode";
+import { loadReceiptSettings } from "@/lib/printSettings";
 import { Search, Plus, Minus, Trash2, ShoppingCart, X, User, ChevronDown, Printer, Check, Wrench, Store } from "lucide-react";
 import {
   adminListProducts, adminListStock, adminListAllPOSCustomers, adminCreatePOSSale,
@@ -62,27 +63,24 @@ type ReceiptSale = {
 
 function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
   const barcodeRef = useRef<SVGSVGElement>(null);
+  const cfg = loadReceiptSettings();
+  const fs = cfg.fontSize;
 
   useEffect(() => {
-    if (barcodeRef.current) {
+    if (barcodeRef.current && cfg.showBarcode) {
       try {
         JsBarcode(barcodeRef.current, sale.saleNumber, {
-          format: "CODE128",
-          width: 1.8,
-          height: 48,
-          displayValue: true,
-          fontSize: 11,
-          margin: 2,
-          background: "#ffffff",
-          lineColor: "#000000",
+          format: "CODE128", width: 1.8, height: 48,
+          displayValue: true, fontSize: fs, margin: 2,
+          background: "#ffffff", lineColor: "#000000",
         });
       } catch { /* ignore */ }
     }
-  }, [sale.saleNumber]);
+  }, [sale.saleNumber, cfg.showBarcode, fs]);
 
   const S: React.CSSProperties = {
-    fontFamily: "Arial, 'Helvetica Neue', Helvetica, sans-serif",
-    fontSize: "11pt",
+    fontFamily: cfg.fontFamily,
+    fontSize: `${fs}pt`,
     color: "#000",
     lineHeight: "1.5",
     width: "100%",
@@ -95,34 +93,34 @@ function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
 
   return (
     <div className="thermal-receipt hidden" style={S}>
+
       {/* Company header */}
-      <div style={{ textAlign: "center", paddingBottom: "4pt" }}>
-        <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: "1.3" }}>Tashi Brakes (pvt)</div>
-        <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: "1.3" }}>Ltd</div>
-        <div style={{ fontSize: "10pt", marginTop: "3pt" }}>1122 Street Dar-ul-Islam Colony</div>
-        <div style={{ fontSize: "10pt" }}>Attock</div>
-        <div style={{ fontSize: "10.5pt", marginTop: "2pt" }}>03055198651</div>
-      </div>
+      {cfg.showCompanyHeader && (
+        <div style={{ textAlign: "center", paddingBottom: "4pt" }}>
+          <div style={{ fontWeight: cfg.boldCompanyName ? "bold" : "normal", fontSize: `${fs + 3}pt`, lineHeight: "1.3" }}>{cfg.companyName}</div>
+          {cfg.companyLine2 && <div style={{ fontWeight: cfg.boldCompanyName ? "bold" : "normal", fontSize: `${fs + 3}pt`, lineHeight: "1.3" }}>{cfg.companyLine2}</div>}
+          {cfg.showAddress && <div style={{ fontSize: `${fs - 1}pt`, marginTop: "3pt" }}>{cfg.companyAddress}</div>}
+          {cfg.showAddress && cfg.companyCity && <div style={{ fontSize: `${fs - 1}pt` }}>{cfg.companyCity}</div>}
+          {cfg.showPhone && <div style={{ fontSize: `${fs}pt`, marginTop: "2pt" }}>{cfg.companyPhone}</div>}
+        </div>
+      )}
 
       <div style={dash} />
 
       {/* Meta */}
       <table style={tbl}><tbody>
-        <tr>
-          <td style={tdL}>Receipt No.:</td>
-          <td style={tdR}>{sale.saleNumber}</td>
-        </tr>
-        <tr>
-          <td style={tdL}>{fmtReceiptDate(sale.saleDate)}</td>
-        </tr>
-        <tr>
-          <td style={tdL}>User:</td>
-          <td style={tdR}>{sale.userName}</td>
-        </tr>
-        <tr>
-          <td style={tdL}>Customer:</td>
-          <td style={tdR}>{sale.customerName}</td>
-        </tr>
+        {cfg.showReceiptNo && (
+          <tr><td style={tdL}>Receipt No.:</td><td style={tdR}>{sale.saleNumber}</td></tr>
+        )}
+        {cfg.showDateTime && (
+          <tr><td style={tdL} colSpan={2}>{fmtReceiptDate(sale.saleDate)}</td></tr>
+        )}
+        {cfg.showUser && (
+          <tr><td style={tdL}>User:</td><td style={tdR}>{sale.userName}</td></tr>
+        )}
+        {cfg.showCustomer && (
+          <tr><td style={tdL}>Customer:</td><td style={tdR}>{sale.customerName}</td></tr>
+        )}
       </tbody></table>
 
       <div style={dash} />
@@ -132,15 +130,15 @@ function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
         {sale.items.map((item, i) => (
           <React.Fragment key={i}>
             <tr>
-              <td style={{ ...tdL, fontWeight: "bold" }} colSpan={2}>
-                {item.sku ? `${item.sku}  ` : ""}{item.productName}
+              <td style={{ ...tdL, fontWeight: cfg.boldItemNames ? "bold" : "normal" }} colSpan={2}>
+                {cfg.showSKU && item.sku ? `${item.sku}  ` : ""}{item.productName}
               </td>
             </tr>
             <tr>
-              <td style={{ ...tdL, fontSize: "10.5pt", paddingBottom: "5pt" }}>
+              <td style={{ ...tdL, fontSize: `${fs - 0.5}pt`, paddingBottom: "5pt" }}>
                 {item.qty} x {fmtRs(item.unitPrice)}
               </td>
-              <td style={{ ...tdR, fontSize: "10.5pt", paddingBottom: "5pt" }}>
+              <td style={{ ...tdR, fontSize: `${fs - 0.5}pt`, paddingBottom: "5pt" }}>
                 {fmtRs(item.lineTotal)}
               </td>
             </tr>
@@ -148,25 +146,19 @@ function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
         ))}
       </tbody></table>
 
-      <table style={tbl}><tbody>
-        <tr>
-          <td style={tdL}>Items count: {sale.items.reduce((a, i) => a + i.qty, 0)}</td>
-        </tr>
-      </tbody></table>
+      {cfg.showItemsCount && (
+        <div style={{ fontSize: `${fs - 1}pt` }}>Items count: {sale.items.reduce((a, i) => a + i.qty, 0)}</div>
+      )}
 
       <div style={dash} />
 
       {/* Subtotal + discount */}
-      {sale.discountAmount > 0 && (
+      {cfg.showSubtotal && (
         <table style={tbl}><tbody>
-          <tr>
-            <td style={tdL}>Subtotal:</td>
-            <td style={tdR}>{fmtRs(sale.subtotal)}</td>
-          </tr>
-          <tr>
-            <td style={tdL}>Discount:</td>
-            <td style={tdR}>-{fmtRs(sale.discountAmount)}</td>
-          </tr>
+          <tr><td style={tdL}>Subtotal:</td><td style={tdR}>{fmtRs(sale.subtotal)}</td></tr>
+          {cfg.showDiscount && sale.discountAmount > 0 && (
+            <tr><td style={tdL}>Discount:</td><td style={tdR}>-{fmtRs(sale.discountAmount)}</td></tr>
+          )}
         </tbody></table>
       )}
 
@@ -174,42 +166,51 @@ function ThermalReceipt({ sale }: { sale: ReceiptSale }) {
 
       {/* TOTAL */}
       <table style={tbl}><tbody>
-        <tr style={{ fontWeight: "bold", fontSize: "13pt" }}>
+        <tr style={{ fontWeight: cfg.boldTotal ? "bold" : "normal", fontSize: `${fs + 2}pt` }}>
           <td style={tdL}>TOTAL:</td>
           <td style={tdR}>{fmtRs(sale.total)}</td>
         </tr>
       </tbody></table>
 
-      <div style={dash} />
-
-      {/* Payment */}
-      <table style={tbl}><tbody>
-        <tr>
-          <td style={tdL}>Cash:</td>
-          <td style={tdR}>{fmtRs(sale.paymentMethod === "cash" ? sale.cashReceived : sale.total)}</td>
-        </tr>
-        <tr>
-          <td style={tdL}>Paid amount:</td>
-          <td style={tdR}>{fmtRs(sale.total)}</td>
-        </tr>
-        {sale.paymentMethod === "cash" && sale.change > 0 && (
-          <tr>
-            <td style={{ ...tdL, fontWeight: "bold" }}>Change:</td>
-            <td style={{ ...tdR, fontWeight: "bold" }}>{fmtRs(sale.change)}</td>
-          </tr>
-        )}
-      </tbody></table>
-
-      <div style={dash} />
+      {/* Payment details */}
+      {cfg.showPaymentDetails && (
+        <>
+          <div style={dash} />
+          <table style={tbl}><tbody>
+            <tr>
+              <td style={tdL}>Cash:</td>
+              <td style={tdR}>{fmtRs(sale.paymentMethod === "cash" ? sale.cashReceived : sale.total)}</td>
+            </tr>
+            <tr>
+              <td style={tdL}>Paid amount:</td>
+              <td style={tdR}>{fmtRs(sale.total)}</td>
+            </tr>
+            {sale.paymentMethod === "cash" && sale.change > 0 && (
+              <tr>
+                <td style={{ ...tdL, fontWeight: "bold" }}>Change:</td>
+                <td style={{ ...tdR, fontWeight: "bold" }}>{fmtRs(sale.change)}</td>
+              </tr>
+            )}
+          </tbody></table>
+        </>
+      )}
 
       {/* Barcode */}
-      <div style={{ textAlign: "center", paddingTop: "4pt" }}>
-        <svg ref={barcodeRef} style={{ maxWidth: "100%" }} />
-      </div>
+      {cfg.showBarcode && (
+        <>
+          <div style={dash} />
+          <div style={{ textAlign: "center", paddingTop: "4pt" }}>
+            <svg ref={barcodeRef} style={{ maxWidth: "100%" }} />
+          </div>
+        </>
+      )}
 
-      <div style={{ textAlign: "center", fontSize: "9.5pt", paddingTop: "6pt" }}>
-        Thank you for your business!
-      </div>
+      {/* Footer */}
+      {cfg.showFooter && cfg.footerText && (
+        <div style={{ textAlign: "center", fontSize: `${fs - 1.5}pt`, paddingTop: "6pt" }}>
+          {cfg.footerText}
+        </div>
+      )}
     </div>
   );
 }
