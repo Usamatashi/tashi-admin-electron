@@ -781,21 +781,27 @@ export default function AdminPrintLabels() {
                         outline: settings.showBorder ? "1px solid #000" : undefined,
                       }}
                     >
-                      <img
-                        src={qrUrl(q.qrNumber, 200)}
-                        alt={q.qrNumber}
-                        className="min-h-0 flex-1 object-contain"
-                        style={{ width: "100%" }}
-                      />
-                      {settings.textMode !== "none" && (
-                        <div className="w-full break-all text-center font-mono leading-tight text-ink-800"
-                          style={{ fontSize: Math.max(6, settings.fontSize * previewScale * 0.55) }}
-                        >
-                          {settings.textMode === "qrNumber"    ? q.qrNumber :
-                           settings.textMode === "productName" ? q.productName :
-                           settings.customText}
-                        </div>
-                      )}
+                      <div style={{
+                        display: "flex", flexDirection: "column", alignItems: "center",
+                        width: "100%", height: "100%",
+                        transform: `translate(${settings.offsetX * previewScale}px, ${-settings.offsetY * previewScale}px)`,
+                      }}>
+                        <img
+                          src={qrUrl(q.qrNumber, 200)}
+                          alt={q.qrNumber}
+                          className="min-h-0 flex-1 object-contain"
+                          style={{ width: "100%" }}
+                        />
+                        {settings.textMode !== "none" && (
+                          <div className="w-full break-all text-center font-mono leading-tight text-ink-800"
+                            style={{ fontSize: Math.max(6, settings.fontSize * previewScale * 0.55) }}
+                          >
+                            {settings.textMode === "qrNumber"    ? q.qrNumber :
+                             settings.textMode === "productName" ? q.productName :
+                             settings.customText}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1198,25 +1204,31 @@ export default function AdminPrintLabels() {
                 borderRadius: settings.shape === "rounded" ? `${settings.radius}cm` : "0",
               }}
             >
-              <img
-                src={qrUrl(q.qrNumber, 800)}
-                alt={q.qrNumber}
-                style={{
-                  width: `${settings.qrScale * 100}%`,
-                  height: "auto",
-                  objectFit: "contain",
-                  imageRendering: "pixelated",
-                  WebkitPrintColorAdjust: "exact",
-                  printColorAdjust: "exact",
-                } as React.CSSProperties}
-              />
-              {settings.textMode !== "none" && (
-                <div style={{ fontFamily: "Arial, sans-serif", fontSize: `${settings.fontSize}pt`, textAlign: "center", marginTop: "2pt", wordBreak: "break-all" }}>
-                  {settings.textMode === "qrNumber"    ? q.qrNumber :
-                   settings.textMode === "productName" ? q.productName :
-                   settings.customText}
-                </div>
-              )}
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                width: "100%", height: "100%",
+                transform: `translate(${settings.offsetX}cm, ${-settings.offsetY}cm)`,
+              }}>
+                <img
+                  src={qrUrl(q.qrNumber, 800)}
+                  alt={q.qrNumber}
+                  style={{
+                    width: `${settings.qrScale * 100}%`,
+                    height: "auto",
+                    objectFit: "contain",
+                    imageRendering: "pixelated",
+                    WebkitPrintColorAdjust: "exact",
+                    printColorAdjust: "exact",
+                  } as React.CSSProperties}
+                />
+                {settings.textMode !== "none" && (
+                  <div style={{ fontFamily: "Arial, sans-serif", fontSize: `${settings.fontSize}pt`, textAlign: "center", marginTop: "2pt", wordBreak: "break-all" }}>
+                    {settings.textMode === "qrNumber"    ? q.qrNumber :
+                     settings.textMode === "productName" ? q.productName :
+                     settings.customText}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
 
