@@ -1,6 +1,16 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
+const Home = lazy(() => import("@/pages/Home"));
+const About = lazy(() => import("@/pages/About"));
+const Career = lazy(() => import("@/pages/Career"));
+const Products = lazy(() => import("@/pages/Products"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Cart = lazy(() => import("@/pages/Cart"));
+const Checkout = lazy(() => import("@/pages/Checkout"));
+const OrderConfirmation = lazy(() => import("@/pages/OrderConfirmation"));
 const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
 const AdminLayout = lazy(() => import("@/components/AdminLayout"));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
@@ -36,6 +46,7 @@ const AdminJournals = lazy(() => import("@/pages/AdminJournals"));
 const AdminCashBook = lazy(() => import("@/pages/AdminCashBook"));
 const AdminFinancialReports = lazy(() => import("@/pages/AdminFinancialReports"));
 const AdminOrderPrint = lazy(() => import("@/pages/AdminOrderPrint"));
+const AdminPrintSettings = lazy(() => import("@/pages/AdminPrintSettings"));
 
 function PageLoader() {
   return (
@@ -46,48 +57,77 @@ function PageLoader() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
+  if (isAdminRoute) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/print-labels" element={<AdminPrintLabels />} />
+          <Route path="/admin/print-order/:orderId" element={<AdminOrderPrint />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="orders/wholesale/:docId" element={<AdminWholesaleOrderDetail />} />
+            <Route path="orders/:orderId" element={<AdminOrderDetail />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="claims" element={<AdminClaims />} />
+            <Route path="payments" element={<AdminPayments />} />
+            <Route path="commission" element={<AdminCommission />} />
+            <Route path="commission/salesman/:salesmanId" element={<AdminSalesmanDetail />} />
+            <Route path="qr-codes" element={<AdminQRCodes />} />
+            <Route path="ads" element={<AdminAds />} />
+            <Route path="ticker" element={<AdminTicker />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="regions" element={<AdminRegions />} />
+            <Route path="whatsapp" element={<AdminWhatsapp />} />
+            <Route path="super-config" element={<AdminSuperConfig />} />
+            <Route path="team" element={<AdminTeam />} />
+            <Route path="pos" element={<AdminPOS />} />
+            <Route path="stock" element={<AdminStock />} />
+            <Route path="pos-customers" element={<AdminPOSCustomers />} />
+            <Route path="pos-sales" element={<AdminPOSSales />} />
+            <Route path="pos-returns" element={<AdminPOSReturns />} />
+            <Route path="careers" element={<AdminCareers />} />
+            <Route path="suppliers" element={<AdminSuppliers />} />
+            <Route path="expenses" element={<AdminExpenses />} />
+            <Route path="purchases" element={<AdminPurchases />} />
+            <Route path="chart-of-accounts" element={<AdminChartOfAccounts />} />
+            <Route path="accounts/:id" element={<AdminAccountLedger />} />
+            <Route path="journals" element={<AdminJournals />} />
+            <Route path="cash-book" element={<AdminCashBook />} />
+            <Route path="financial-reports" element={<AdminFinancialReports />} />
+            <Route path="print-settings" element={<AdminPrintSettings />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/print-labels" element={<AdminPrintLabels />} />
-        <Route path="/admin/print-order/:orderId" element={<AdminOrderPrint />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="orders/wholesale/:docId" element={<AdminWholesaleOrderDetail />} />
-          <Route path="orders/:orderId" element={<AdminOrderDetail />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="claims" element={<AdminClaims />} />
-          <Route path="payments" element={<AdminPayments />} />
-          <Route path="commission" element={<AdminCommission />} />
-          <Route path="commission/salesman/:salesmanId" element={<AdminSalesmanDetail />} />
-          <Route path="qr-codes" element={<AdminQRCodes />} />
-          <Route path="ads" element={<AdminAds />} />
-          <Route path="ticker" element={<AdminTicker />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="regions" element={<AdminRegions />} />
-          <Route path="whatsapp" element={<AdminWhatsapp />} />
-          <Route path="super-config" element={<AdminSuperConfig />} />
-          <Route path="team" element={<AdminTeam />} />
-          <Route path="pos" element={<AdminPOS />} />
-          <Route path="stock" element={<AdminStock />} />
-          <Route path="pos-customers" element={<AdminPOSCustomers />} />
-          <Route path="pos-sales" element={<AdminPOSSales />} />
-          <Route path="pos-returns" element={<AdminPOSReturns />} />
-          <Route path="careers" element={<AdminCareers />} />
-          <Route path="suppliers" element={<AdminSuppliers />} />
-          <Route path="expenses" element={<AdminExpenses />} />
-          <Route path="purchases" element={<AdminPurchases />} />
-          <Route path="chart-of-accounts" element={<AdminChartOfAccounts />} />
-          <Route path="accounts/:id" element={<AdminAccountLedger />} />
-          <Route path="journals" element={<AdminJournals />} />
-          <Route path="cash-book" element={<AdminCashBook />} />
-          <Route path="financial-reports" element={<AdminFinancialReports />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/admin/login" replace />} />
-      </Routes>
-    </Suspense>
+    <div className="flex min-h-screen flex-col bg-white text-ink-800">
+      <Header />
+      <main className="flex-1">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/team" element={<Navigate to="/about" replace />} />
+            <Route path="/culture" element={<Navigate to="/about" replace />} />
+            <Route path="/career" element={<Career />} />
+            <Route path="/quality" element={<Navigate to="/" replace />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </main>
+      <Footer />
+    </div>
   );
 }
