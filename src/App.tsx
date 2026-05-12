@@ -112,7 +112,7 @@ export default function App() {
       <main className="flex-1">
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Navigate to="/admin/login" replace />} />
             <Route path="/about" element={<About />} />
             <Route path="/team" element={<Navigate to="/about" replace />} />
             <Route path="/culture" element={<Navigate to="/about" replace />} />
@@ -123,7 +123,7 @@ export default function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/admin/login" replace />} />
           </Routes>
         </Suspense>
       </main>
