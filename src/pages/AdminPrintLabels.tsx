@@ -180,6 +180,13 @@ export default function AdminPrintLabels() {
   const [availablePrinters, setAvailablePrinters] = useState<{ name: string; isDefault: boolean }[]>([]);
   const [pickedPrinter, setPickedPrinter] = useState("");
   const [printing, setPrinting] = useState(false);
+  const [lastUsedPrinter, setLastUsedPrinter] = useState<string>(
+    () => localStorage.getItem("tashi_last_printer") ?? ""
+  );
+  const [presetUsage, setPresetUsage] = useState<Record<number, number>>(() => {
+    try { return JSON.parse(localStorage.getItem("tashi_preset_usage") ?? "{}"); }
+    catch { return {}; }
+  });
 
   useEffect(() => {
     adminMe().catch(() => navigate("/admin/login", { replace: true }));
@@ -229,6 +236,9 @@ export default function AdminPrintLabels() {
     const p = PRESETS[idx];
     setActivePreset(idx);
     setSettings((s) => ({ ...s, width: p.w, height: p.h }));
+    const updated = { ...presetUsage, [idx]: (presetUsage[idx] ?? 0) + 1 };
+    setPresetUsage(updated);
+    localStorage.setItem("tashi_preset_usage", JSON.stringify(updated));
   }
 
   function updateLine(i: number, patch: Partial<TextLine>) {
@@ -260,7 +270,10 @@ export default function AdminPrintLabels() {
     if (eAPI?.getPrinters) {
       const printers = await eAPI.getPrinters();
       setAvailablePrinters(printers);
-      const def = printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
+      const hasLastUsed = lastUsedPrinter && printers.some((p: any) => p.name === lastUsedPrinter);
+      const def = hasLastUsed
+        ? lastUsedPrinter
+        : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
       setPickedPrinter(def);
       setShowPrinterPicker(true);
     } else {
@@ -314,6 +327,8 @@ export default function AdminPrintLabels() {
       heightMicrons: Math.round(hCm * 10000),
       copies: settings.copies,
     });
+    localStorage.setItem("tashi_last_printer", pickedPrinter);
+    setLastUsedPrinter(pickedPrinter);
     setShowPrintSheet(false);
     document.head.removeChild(style);
     setPrinting(false);
@@ -917,18 +932,23 @@ export default function AdminPrintLabels() {
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold text-ink-600">Size Presets</label>
                 <div className="grid grid-cols-2 gap-1">
-                  {PRESETS.map((p, i) => (
+                  {[...PRESETS.map((p, i) => ({ ...p, originalIdx: i, uses: presetUsage[i] ?? 0 }))]
+                    .sort((a, b) => b.uses - a.uses)
+                    .map((p) => (
                     <button
-                      key={i}
-                      onClick={() => applyPreset(i)}
+                      key={p.originalIdx}
+                      onClick={() => applyPreset(p.originalIdx)}
                       className={cn(
-                        "rounded border px-1.5 py-1 text-[10px] font-medium transition-colors",
-                        activePreset === i
+                        "relative rounded border px-1.5 py-1 text-[10px] font-medium transition-colors",
+                        activePreset === p.originalIdx
                           ? "border-brand-500 bg-brand-50 text-brand-700"
                           : "border-ink-200 text-ink-600 hover:border-brand-300 hover:bg-brand-50/50",
                       )}
                     >
                       {p.label}
+                      {p.uses > 0 && (
+                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-brand-400" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1184,7 +1204,7 @@ export default function AdminPrintLabels() {
       {showPrintSheet && createPortal(
         <div
           id="qr-direct-print-sheet"
-          style={{ display: "none", position: "fixed", inset: 0, background: "#fff", zIndex: 9999 }}
+          style={{ display: "none", background: "#fff" }}
         >
           {settings.labelType === "qr" && selectedQr.map((q) => (
             <div
@@ -1282,7 +1302,13 @@ export default function AdminPrintLabels() {
               {availablePrinters.length === 0 ? (
                 <p className="py-6 text-center text-sm text-ink-400">No printers found</p>
               ) : (
-                availablePrinters.map((p) => (
+                [...availablePrinters]
+                  .sort((a, b) => {
+                    if (a.name === lastUsedPrinter) return -1;
+                    if (b.name === lastUsedPrinter) return 1;
+                    return 0;
+                  })
+                  .map((p) => (
                   <button
                     key={p.name}
                     onClick={() => setPickedPrinter(p.name)}
@@ -1296,9 +1322,11 @@ export default function AdminPrintLabels() {
                     <Printer className="h-4 w-4 shrink-0 text-ink-400" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{p.name}</p>
-                      {p.isDefault && (
+                      {p.name === lastUsedPrinter ? (
+                        <p className="text-[11px] font-medium text-brand-500">Last used</p>
+                      ) : p.isDefault ? (
                         <p className="text-[11px] text-ink-400">Default printer</p>
-                      )}
+                      ) : null}
                     </div>
                     {pickedPrinter === p.name && (
                       <div className="h-2 w-2 shrink-0 rounded-full bg-brand-500" />
