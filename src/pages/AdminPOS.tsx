@@ -240,6 +240,14 @@ export default function AdminPOS() {
   const [newCustForm, setNewCustForm] = useState({ name: "", phone: "", city: "" });
   const [newCustSaving, setNewCustSaving] = useState(false);
 
+  const [showReceiptPrinterPicker, setShowReceiptPrinterPicker] = useState(false);
+  const [availableReceiptPrinters, setAvailableReceiptPrinters] = useState<{ name: string; isDefault: boolean }[]>([]);
+  const [pickedReceiptPrinter, setPickedReceiptPrinter] = useState("");
+  const [printingReceipt, setPrintingReceipt] = useState(false);
+  const [lastUsedReceiptPrinter, setLastUsedReceiptPrinter] = useState<string>(
+    () => localStorage.getItem("tashi_last_receipt_printer") ?? ""
+  );
+
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -335,6 +343,33 @@ export default function AdminPOS() {
     }
   }
 
+  async function handleReceiptPrint() {
+    const eAPI = (window as any).electronAPI;
+    if (eAPI?.getPrinters) {
+      const printers = await eAPI.getPrinters();
+      setAvailableReceiptPrinters(printers);
+      const hasLastUsed = lastUsedReceiptPrinter && printers.some((p: any) => p.name === lastUsedReceiptPrinter);
+      const def = hasLastUsed
+        ? lastUsedReceiptPrinter
+        : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
+      setPickedReceiptPrinter(def);
+      setShowReceiptPrinterPicker(true);
+    } else {
+      window.print();
+    }
+  }
+
+  async function doReceiptElectronPrint() {
+    if (!pickedReceiptPrinter) return;
+    setPrintingReceipt(true);
+    setShowReceiptPrinterPicker(false);
+    const eAPI = (window as any).electronAPI;
+    await eAPI.printToPrinter({ deviceName: pickedReceiptPrinter, silent: true });
+    localStorage.setItem("tashi_last_receipt_printer", pickedReceiptPrinter);
+    setLastUsedReceiptPrinter(pickedReceiptPrinter);
+    setPrintingReceipt(false);
+  }
+
   async function handleAddNewConsumer() {
     if (!newCustForm.name.trim()) return;
     setNewCustSaving(true);
@@ -412,7 +447,7 @@ export default function AdminPOS() {
 
         {/* Buttons */}
         <div className="mt-4 flex gap-2 print:hidden">
-          <Btn variant="secondary" className="flex-1" onClick={() => window.print()}><Printer className="h-4 w-4" /> Print</Btn>
+          <Btn variant="secondary" className="flex-1" onClick={handleReceiptPrint} disabled={printingReceipt}><Printer className="h-4 w-4" /> {printingReceipt ? "Printing…" : "Print"}</Btn>
           <Btn className="flex-1" onClick={() => setReceiptSale(null)}><Plus className="h-4 w-4" /> New Sale</Btn>
         </div>
       </div>
@@ -650,6 +685,72 @@ export default function AdminPOS() {
           </Field>
         </div>
       </Modal>
+
+      {/* ── Receipt printer picker modal ── */}
+      {showReceiptPrinterPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden">
+          <div className="w-96 rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-ink-100 px-5 py-4">
+              <Printer className="h-5 w-5 text-brand-600" />
+              <h2 className="text-base font-semibold text-ink-900">Select Receipt Printer</h2>
+            </div>
+            <div className="max-h-72 overflow-y-auto px-3 py-3">
+              {availableReceiptPrinters.length === 0 ? (
+                <p className="py-6 text-center text-sm text-ink-400">No printers found</p>
+              ) : (
+                [...availableReceiptPrinters]
+                  .sort((a, b) => {
+                    if (a.name === lastUsedReceiptPrinter) return -1;
+                    if (b.name === lastUsedReceiptPrinter) return 1;
+                    return 0;
+                  })
+                  .map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => setPickedReceiptPrinter(p.name)}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                      pickedReceiptPrinter === p.name ? "bg-brand-50 text-brand-700" : "text-ink-700 hover:bg-ink-50"
+                    }`}
+                  >
+                    <Printer className="h-4 w-4 shrink-0 text-ink-400" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      {p.name === lastUsedReceiptPrinter ? (
+                        <p className="text-[11px] font-medium text-brand-500">Last used</p>
+                      ) : p.isDefault ? (
+                        <p className="text-[11px] text-ink-400">Default printer</p>
+                      ) : null}
+                    </div>
+                    {pickedReceiptPrinter === p.name && (
+                      <div className="h-2 w-2 shrink-0 rounded-full bg-brand-500" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t border-ink-100 px-5 py-4">
+              <button
+                onClick={() => setShowReceiptPrinterPicker(false)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-ink-600 hover:bg-ink-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doReceiptElectronPrint}
+                disabled={!pickedReceiptPrinter || printingReceipt}
+                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors ${
+                  pickedReceiptPrinter && !printingReceipt
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "cursor-not-allowed bg-ink-300"
+                }`}
+              >
+                <Printer className="h-4 w-4" />
+                {printingReceipt ? "Printing…" : "Print Receipt"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -56,15 +56,15 @@ const BARCODE_TYPES = [
   { id: "itf",     label: "ITF-14 (14 digits)" },
 ];
 
-const PRESETS: { label: string; w: number; h: number }[] = [
-  { label: "3.8 × 2.5 cm", w: 3.8, h: 2.5 },
-  { label: "4.0 × 3.0 cm", w: 4.0, h: 3.0 },
-  { label: "5.0 × 2.5 cm", w: 5.0, h: 2.5 },
-  { label: "5.0 × 3.0 cm", w: 5.0, h: 3.0 },
-  { label: "6.0 × 4.0 cm", w: 6.0, h: 4.0 },
-  { label: "6.2 × 2.9 cm", w: 6.2, h: 2.9 },
-  { label: "10 × 5.0 cm",  w: 10.0, h: 5.0 },
-];
+type SizePreset = { w: number; h: number; uses: number };
+
+function loadSizeHistory(): SizePreset[] {
+  try { return JSON.parse(localStorage.getItem("tashi_size_history") ?? "[]"); }
+  catch { return []; }
+}
+function saveSizeHistory(h: SizePreset[]) {
+  localStorage.setItem("tashi_size_history", JSON.stringify(h));
+}
 
 const DEFAULT: LabelSettings = {
   labelType: "qr",
@@ -172,7 +172,6 @@ export default function AdminPrintLabels() {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(passedIds));
   const [settings, setSettings] = useState<LabelSettings>(DEFAULT);
-  const [activePreset, setActivePreset] = useState<number | null>(null);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [showPrintSheet, setShowPrintSheet] = useState(false);
@@ -183,10 +182,7 @@ export default function AdminPrintLabels() {
   const [lastUsedPrinter, setLastUsedPrinter] = useState<string>(
     () => localStorage.getItem("tashi_last_printer") ?? ""
   );
-  const [presetUsage, setPresetUsage] = useState<Record<number, number>>(() => {
-    try { return JSON.parse(localStorage.getItem("tashi_preset_usage") ?? "{}"); }
-    catch { return {}; }
-  });
+  const [sizeHistory, setSizeHistory] = useState<SizePreset[]>(loadSizeHistory);
 
   useEffect(() => {
     adminMe().catch(() => navigate("/admin/login", { replace: true }));
@@ -232,13 +228,27 @@ export default function AdminPrintLabels() {
     setSettings((s) => ({ ...s, [key]: value }));
   }
 
-  function applyPreset(idx: number) {
-    const p = PRESETS[idx];
-    setActivePreset(idx);
-    setSettings((s) => ({ ...s, width: p.w, height: p.h }));
-    const updated = { ...presetUsage, [idx]: (presetUsage[idx] ?? 0) + 1 };
-    setPresetUsage(updated);
-    localStorage.setItem("tashi_preset_usage", JSON.stringify(updated));
+  function recordSizeUsed(w: number, h: number) {
+    setSizeHistory((prev) => {
+      const idx = prev.findIndex((s) => s.w === w && s.h === h);
+      const updated = idx >= 0
+        ? prev.map((s, i) => i === idx ? { ...s, uses: s.uses + 1 } : s)
+        : [...prev, { w, h, uses: 1 }];
+      saveSizeHistory(updated);
+      return updated;
+    });
+  }
+
+  function deleteSizePreset(w: number, h: number) {
+    setSizeHistory((prev) => {
+      const updated = prev.filter((s) => !(s.w === w && s.h === h));
+      saveSizeHistory(updated);
+      return updated;
+    });
+  }
+
+  function applySizePreset(w: number, h: number) {
+    setSettings((s) => ({ ...s, width: w, height: h }));
   }
 
   function updateLine(i: number, patch: Partial<TextLine>) {
@@ -284,6 +294,7 @@ export default function AdminPrintLabels() {
   async function doWindowPrint() {
     const wCm = settings.width;
     const hCm = settings.height;
+    recordSizeUsed(wCm, hCm);
     const style = document.createElement("style");
     style.id = "qr-direct-print-style";
     style.textContent = `
@@ -327,6 +338,7 @@ export default function AdminPrintLabels() {
       heightMicrons: Math.round(hCm * 10000),
       copies: settings.copies,
     });
+    recordSizeUsed(wCm, hCm);
     localStorage.setItem("tashi_last_printer", pickedPrinter);
     setLastUsedPrinter(pickedPrinter);
     setShowPrintSheet(false);
@@ -338,6 +350,7 @@ export default function AdminPrintLabels() {
     if (!canGenerate || generating) return;
     setGenerating(true);
     setBarcodeErr("");
+    recordSizeUsed(settings.width, settings.height);
     try {
       const { PDFDocument, rgb, StandardFonts } = await import("pdf-lib");
       const pdfDoc = await PDFDocument.create();
@@ -931,27 +944,36 @@ export default function AdminPrintLabels() {
               {/* Size presets */}
               <div>
                 <label className="mb-1.5 block text-[11px] font-semibold text-ink-600">Size Presets</label>
-                <div className="grid grid-cols-2 gap-1">
-                  {[...PRESETS.map((p, i) => ({ ...p, originalIdx: i, uses: presetUsage[i] ?? 0 }))]
-                    .sort((a, b) => b.uses - a.uses)
-                    .map((p) => (
-                    <button
-                      key={p.originalIdx}
-                      onClick={() => applyPreset(p.originalIdx)}
-                      className={cn(
-                        "relative rounded border px-1.5 py-1 text-[10px] font-medium transition-colors",
-                        activePreset === p.originalIdx
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-ink-200 text-ink-600 hover:border-brand-300 hover:bg-brand-50/50",
-                      )}
-                    >
-                      {p.label}
-                      {p.uses > 0 && (
-                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-brand-400" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {sizeHistory.length === 0 ? (
+                  <p className="text-[10px] text-ink-400 italic">No presets yet — sizes are saved automatically when you print or download a PDF.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-1">
+                    {[...sizeHistory].sort((a, b) => b.uses - a.uses).map((p) => {
+                      const isActive = settings.width === p.w && settings.height === p.h;
+                      const label = `${p.w} × ${p.h} cm`;
+                      return (
+                        <div key={`${p.w}-${p.h}`} className="relative group">
+                          <button
+                            onClick={() => applySizePreset(p.w, p.h)}
+                            className={cn(
+                              "w-full rounded border px-1.5 py-1 text-[10px] font-medium transition-colors pr-4",
+                              isActive
+                                ? "border-brand-500 bg-brand-50 text-brand-700"
+                                : "border-ink-200 text-ink-600 hover:border-brand-300 hover:bg-brand-50/50",
+                            )}
+                          >
+                            {label}
+                          </button>
+                          <button
+                            onClick={() => deleteSizePreset(p.w, p.h)}
+                            className="absolute right-0.5 top-1/2 -translate-y-1/2 hidden group-hover:flex h-4 w-4 items-center justify-center rounded text-ink-300 hover:text-red-500"
+                            title="Remove preset"
+                          >×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Custom dimensions */}
@@ -961,14 +983,14 @@ export default function AdminPrintLabels() {
                   <input type="number" min={1} max={30} step={0.1}
                     className="w-full rounded border border-ink-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
                     value={settings.width}
-                    onChange={(e) => { setActivePreset(null); set("width", Number(e.target.value)); }} />
+                    onChange={(e) => set("width", Number(e.target.value))} />
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold text-ink-600">Height (cm)</label>
                   <input type="number" min={1} max={30} step={0.1}
                     className="w-full rounded border border-ink-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
                     value={settings.height}
-                    onChange={(e) => { setActivePreset(null); set("height", Number(e.target.value)); }} />
+                    onChange={(e) => set("height", Number(e.target.value))} />
                 </div>
               </div>
 
