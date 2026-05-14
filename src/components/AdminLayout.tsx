@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Package, ShoppingBag, Receipt, CircleDollarSign, BarChart3,
   QrCode, Megaphone, Type, Users, MapPin, MessageCircle, ShieldCheck, LogOut, Loader2,
   Menu, X, MonitorSmartphone, Layers, UserSquare2, ClipboardList, RotateCcw,
   Briefcase, Truck, TrendingDown, ShoppingCart, BookOpen, BookMarked, Wallet, FileBarChart,
-  Printer,
+  Printer, ChevronUp, ChevronDown,
 } from "lucide-react";
 import {
   adminLogout, adminMe, adminMyPermissions,
@@ -177,6 +177,31 @@ export default function AdminLayout() {
 function SidebarBody({
   admin, visible, onClose, onLogout,
 }: { admin: AdminUser; visible: (i: NavItemDef) => boolean; onClose?: () => void; onLogout?: () => void }) {
+  const navRef = useRef<HTMLElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 4);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState);
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", updateScrollState); ro.disconnect(); };
+  }, [updateScrollState]);
+
+  function scrollBy(dir: "up" | "down") {
+    navRef.current?.scrollBy({ top: dir === "up" ? -120 : 120, behavior: "smooth" });
+  }
+
   return (
     <div className="flex h-full flex-col">
       {onClose && (
@@ -186,7 +211,21 @@ function SidebarBody({
           </button>
         </div>
       )}
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
+
+      {/* Scroll up button */}
+      <button
+        onClick={() => scrollBy("up")}
+        disabled={!canScrollUp}
+        className={cn(
+          "mx-2 mt-1 flex items-center justify-center rounded-md py-0.5 text-ink-400 transition-all",
+          canScrollUp ? "opacity-100 hover:bg-ink-100 hover:text-ink-700 cursor-pointer" : "opacity-0 pointer-events-none",
+        )}
+        aria-label="Scroll up"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+
+      <nav ref={navRef} className="flex-1 overflow-y-auto px-2 py-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
         {NAV.map((section) => {
           const items = section.items.filter(visible);
           if (!items.length) return null;
@@ -229,6 +268,20 @@ function SidebarBody({
           </button>
         )}
       </nav>
+
+      {/* Scroll down button */}
+      <button
+        onClick={() => scrollBy("down")}
+        disabled={!canScrollDown}
+        className={cn(
+          "mx-2 mb-1 flex items-center justify-center rounded-md py-0.5 text-ink-400 transition-all",
+          canScrollDown ? "opacity-100 hover:bg-ink-100 hover:text-ink-700 cursor-pointer" : "opacity-0 pointer-events-none",
+        )}
+        aria-label="Scroll down"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+
       <div className="border-t border-ink-200 p-3">
         <div className="rounded-lg bg-ink-50 px-3 py-2">
           <div className="text-[10px] uppercase tracking-widest text-ink-400">Signed in</div>
