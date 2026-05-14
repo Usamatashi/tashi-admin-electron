@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Truck, Check, X } from "lucide-react";
+import { ArrowLeft, Truck, Check, X, Printer } from "lucide-react";
 import {
   adminGetWholesaleOrder, adminUpdateWholesaleOrderStatus,
   formatDate, formatPrice, type WholesaleOrderDetail,
@@ -62,9 +62,20 @@ export default function AdminWholesaleOrderDetail() {
 
   return (
     <PageShell>
-      <Link to="/admin/orders" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-600">
-        <ArrowLeft className="h-4 w-4" /> Back to orders
-      </Link>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Link to="/admin/orders" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-600">
+          <ArrowLeft className="h-4 w-4" /> Back to orders
+        </Link>
+        <Link
+          to={`/admin/print-wholesale-order/${docId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3.5 py-2 text-sm font-semibold text-ink-700 shadow-sm transition-colors hover:bg-ink-50"
+        >
+          <Printer className="h-4 w-4 text-orange-500" />
+          Print Invoice
+        </Link>
+      </div>
       <PageHeader
         title={`Wholesale order #${order.id}`}
         subtitle={`Placed ${formatDate(order.createdAt)}`}

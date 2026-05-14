@@ -205,7 +205,7 @@ function RetailSection() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Print Bill"
-                          className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                          className="inline-flex items-center justify-center rounded-md bg-orange-500 p-1.5 text-white shadow-sm transition-colors hover:bg-orange-600 active:bg-white active:text-orange-500 active:ring-1 active:ring-orange-400"
                         >
                           <Printer className="h-3.5 w-3.5" />
                         </Link>
@@ -216,7 +216,7 @@ function RetailSection() {
                             title="Dispatch Order"
                             onClick={() => quickAction(o.id, "dispatched")}
                             disabled={actioning !== null}
-                            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-md bg-indigo-500 p-1.5 text-white shadow-sm transition-colors hover:bg-indigo-600 active:bg-white active:text-indigo-500 active:ring-1 active:ring-indigo-400 disabled:opacity-50"
                           >
                             {isKey("dispatched") ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -232,7 +232,7 @@ function RetailSection() {
                             title="Cancel Order"
                             onClick={() => quickAction(o.id, "cancelled")}
                             disabled={actioning !== null}
-                            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-md bg-red-500 p-1.5 text-white shadow-sm transition-colors hover:bg-red-600 active:bg-white active:text-red-500 active:ring-1 active:ring-red-400 disabled:opacity-50"
                           >
                             {isKey("cancelled") ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -380,12 +380,23 @@ function WholesaleSection() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Print invoice */}
+                        <Link
+                          to={`/admin/print-wholesale-order/${o.docId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Print Invoice"
+                          className="inline-flex items-center justify-center rounded-md bg-orange-500 p-1.5 text-white shadow-sm transition-colors hover:bg-orange-600 active:bg-white active:text-orange-500 active:ring-1 active:ring-orange-400"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </Link>
+
                         {canDispatch && (
                           <button
                             title="Dispatch Order"
                             onClick={() => quickAction(o.docId, "dispatched")}
                             disabled={actioning !== null}
-                            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-md bg-indigo-500 p-1.5 text-white shadow-sm transition-colors hover:bg-indigo-600 active:bg-white active:text-indigo-500 active:ring-1 active:ring-indigo-400 disabled:opacity-50"
                           >
                             {isKey("dispatched") ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -399,7 +410,7 @@ function WholesaleSection() {
                             title="Cancel Order"
                             onClick={() => quickAction(o.docId, "cancelled")}
                             disabled={actioning !== null}
-                            className="rounded-md p-1.5 text-ink-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-md bg-red-500 p-1.5 text-white shadow-sm transition-colors hover:bg-red-600 active:bg-white active:text-red-500 active:ring-1 active:ring-red-400 disabled:opacity-50"
                           >
                             {isKey("cancelled") ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -407,9 +418,6 @@ function WholesaleSection() {
                               <XCircle className="h-3.5 w-3.5" />
                             )}
                           </button>
-                        )}
-                        {!canDispatch && !canCancel && (
-                          <span className="text-[10px] text-ink-400 italic">—</span>
                         )}
                       </div>
                     </td>
