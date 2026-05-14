@@ -129,7 +129,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-ink-50">
+    <div className="flex h-screen overflow-hidden bg-ink-50">
       {/* Mobile sidebar drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setMobileOpen(false)}>
@@ -140,12 +140,12 @@ export default function AdminLayout() {
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 flex-shrink-0 border-r border-ink-200 bg-white lg:block">
+      {/* Desktop sidebar — fixed to viewport height, scrolls independently */}
+      <aside className="hidden h-full w-64 flex-shrink-0 border-r border-ink-200 bg-white lg:flex lg:flex-col">
         <SidebarBody admin={admin} visible={visible} onLogout={handleLogout} />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-ink-200 bg-white/95 px-4 backdrop-blur">
           <div className="flex items-center gap-2">
             <button
