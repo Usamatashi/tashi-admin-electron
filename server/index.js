@@ -117,7 +117,7 @@ if (isProd || isElectron) {
 }
 
 const port = Number(process.env.PORT ?? (isProd ? 5000 : 3001));
-const host = "127.0.0.1";
+const host = "0.0.0.0";
 
 app.listen(port, host, () => {
   console.log(`API server listening on http://${host}:${port}`);
