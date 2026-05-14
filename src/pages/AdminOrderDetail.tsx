@@ -5,6 +5,7 @@ import {
   Loader2, Phone, Mail, MapPin, Package,
   AlertCircle, Printer,
 } from "lucide-react";
+import PrintChoiceModal from "@/components/PrintChoiceModal";
 import {
   adminGetOrder, adminUpdateOrderStatus,
   formatDate, formatPrice, PAYMENT_LABEL, STATUS_META,
@@ -25,6 +26,7 @@ export default function AdminOrderDetail() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [error,    setError]    = useState<string | null>(null);
   const updatingRef = useRef<string | null>(null);
+  const [printModal, setPrintModal] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -99,15 +101,13 @@ export default function AdminOrderDetail() {
           <ArrowLeft className="h-4 w-4" />
           Back to orders
         </Link>
-        <Link
-          to={`/admin/print-order/${orderId}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => setPrintModal(true)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3.5 py-2 text-sm font-semibold text-ink-700 shadow-sm transition-colors hover:bg-ink-50"
         >
           <Printer className="h-4 w-4 text-orange-500" />
-          Print Bill
-        </Link>
+          Print
+        </button>
       </div>
 
       {/* Heading */}
@@ -299,17 +299,22 @@ export default function AdminOrderDetail() {
             </div>
           </dl>
 
-          <Link
-            to={`/admin/print-order/${orderId}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => setPrintModal(true)}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600"
           >
             <Printer className="h-4 w-4" />
-            Print Invoice
-          </Link>
+            Print
+          </button>
         </aside>
       </div>
+
+      <PrintChoiceModal
+        open={printModal}
+        onClose={() => setPrintModal(false)}
+        invoiceUrl={`/admin/print-order/${orderId}`}
+        receiptUrl={`/admin/receipt-order/${orderId}`}
+      />
     </div>
   );
 }

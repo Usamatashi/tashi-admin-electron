@@ -46,7 +46,9 @@ const AdminJournals = lazy(() => import("@/pages/AdminJournals"));
 const AdminCashBook = lazy(() => import("@/pages/AdminCashBook"));
 const AdminFinancialReports = lazy(() => import("@/pages/AdminFinancialReports"));
 const AdminOrderPrint = lazy(() => import("@/pages/AdminOrderPrint"));
+const AdminOrderReceipt = lazy(() => import("@/pages/AdminOrderReceipt"));
 const AdminWholesaleOrderPrint = lazy(() => import("@/pages/AdminWholesaleOrderPrint"));
+const AdminWholesaleOrderReceipt = lazy(() => import("@/pages/AdminWholesaleOrderReceipt"));
 const AdminPrintSettings = lazy(() => import("@/pages/AdminPrintSettings"));
 
 function PageLoader() {
@@ -68,7 +70,9 @@ export default function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/print-labels" element={<AdminPrintLabels />} />
           <Route path="/admin/print-order/:orderId" element={<AdminOrderPrint />} />
+          <Route path="/admin/receipt-order/:orderId" element={<AdminOrderReceipt />} />
           <Route path="/admin/print-wholesale-order/:docId" element={<AdminWholesaleOrderPrint />} />
+          <Route path="/admin/receipt-wholesale-order/:docId" element={<AdminWholesaleOrderReceipt />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="orders" element={<AdminOrders />} />

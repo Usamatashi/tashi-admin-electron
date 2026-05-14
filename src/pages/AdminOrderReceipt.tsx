@@ -1,0 +1,238 @@
+import { useEffect, useRef, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import JsBarcode from "jsbarcode";
+import { Loader2, Printer, ArrowLeft, AlertCircle } from "lucide-react";
+import { adminGetOrder, formatDate, PAYMENT_LABEL, type AdminOrder } from "@/lib/admin";
+import { loadReceiptSettings } from "@/lib/printSettings";
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(d: Date) {
+  const day = String(d.getDate()).padStart(2, "0");
+  const mon = MONTHS[d.getMonth()];
+  const yr  = String(d.getFullYear()).slice(2);
+  const h   = d.getHours();
+  const mm  = String(d.getMinutes()).padStart(2, "0");
+  const ap  = h >= 12 ? "PM" : "AM";
+  const h12 = String(h % 12 || 12).padStart(2, "0");
+  return `${day}-${mon}-${yr} ${h12}:${mm} ${ap}`;
+}
+function fmtRs(v: number) { return `Rs.${Math.round(v).toLocaleString()}`; }
+
+export default function AdminOrderReceipt() {
+  const { orderId } = useParams<{ orderId: string }>();
+  const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderId) return;
+    adminGetOrder(orderId)
+      .then(setOrder)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load order"))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+    </div>
+  );
+
+  if (!order) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <AlertCircle className="h-10 w-10 text-red-500" />
+      <p className="text-red-600 text-sm">{error || "Order not found"}</p>
+      <Link to="/admin/orders" className="text-sm text-blue-600 hover:underline">← Back to orders</Link>
+    </div>
+  );
+
+  const orderRef = `#${order.id.slice(0, 8).toUpperCase()}`;
+
+  return (
+    <div className="min-h-screen bg-gray-100 print:bg-white">
+      {/* Toolbar — hidden when printing */}
+      <div className="print:hidden flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
+        <Link
+          to={`/admin/orders/${orderId}`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Order
+        </Link>
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+        >
+          <Printer className="h-4 w-4" />
+          Print Receipt
+        </button>
+      </div>
+
+      {/* Screen preview */}
+      <div className="print:hidden mx-auto max-w-xs py-8 px-4">
+        <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-sm">
+          <ThermalContent order={order} orderRef={orderRef} />
+        </div>
+        <p className="mt-4 text-center text-xs text-gray-400">
+          Preview — click "Print Receipt" to send to your thermal printer
+        </p>
+      </div>
+
+      {/* Thermal receipt — only rendered when printing */}
+      <div className="thermal-receipt hidden">
+        <ThermalContent order={order} orderRef={orderRef} />
+      </div>
+    </div>
+  );
+}
+
+function ThermalContent({ order, orderRef }: { order: AdminOrder; orderRef: string }) {
+  const barcodeRef = useRef<SVGSVGElement>(null);
+  const cfg = loadReceiptSettings();
+  const fs = cfg.fontSize;
+
+  useEffect(() => {
+    if (barcodeRef.current && cfg.showBarcode) {
+      try {
+        JsBarcode(barcodeRef.current, order.id.slice(0, 8).toUpperCase(), {
+          format: "CODE128", width: 1.8, height: 48,
+          displayValue: true, fontSize: fs, margin: 2,
+          background: "#ffffff", lineColor: "#000000",
+        });
+      } catch { /* ignore */ }
+    }
+  }, [order.id, cfg.showBarcode, fs]);
+
+  const S: React.CSSProperties = { fontFamily: cfg.fontFamily, fontSize: `${fs}pt`, color: "#000", lineHeight: "1.5", width: "100%" };
+  const tbl: React.CSSProperties = { width: "100%", borderCollapse: "collapse" };
+  const tdL: React.CSSProperties = { verticalAlign: "top", paddingBottom: "2pt" };
+  const tdR: React.CSSProperties = { verticalAlign: "top", textAlign: "right", whiteSpace: "nowrap", paddingLeft: "6pt", paddingBottom: "2pt" };
+  const dash: React.CSSProperties = { borderTop: "1px dashed #000", margin: "5pt 0" };
+  const solid: React.CSSProperties = { borderTop: "1.5px solid #000", margin: "3pt 0" };
+
+  const payLabel = PAYMENT_LABEL[order.payment?.method || ""] ?? order.payment?.method ?? "—";
+  const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
+
+  return (
+    <div style={S}>
+      {/* Company header */}
+      {cfg.showCompanyHeader && (
+        <div style={{ textAlign: "center", paddingBottom: "4pt" }}>
+          <div style={{ fontWeight: cfg.boldCompanyName ? "bold" : "normal", fontSize: `${fs + 3}pt`, lineHeight: "1.3" }}>{cfg.companyName}</div>
+          {cfg.companyLine2 && <div style={{ fontWeight: cfg.boldCompanyName ? "bold" : "normal", fontSize: `${fs + 3}pt`, lineHeight: "1.3" }}>{cfg.companyLine2}</div>}
+          {cfg.showAddress && <div style={{ fontSize: `${fs - 1}pt`, marginTop: "3pt" }}>{cfg.companyAddress}</div>}
+          {cfg.showAddress && cfg.companyCity && <div style={{ fontSize: `${fs - 1}pt` }}>{cfg.companyCity}</div>}
+          {cfg.showPhone && <div style={{ fontSize: `${fs}pt`, marginTop: "2pt" }}>{cfg.companyPhone}</div>}
+        </div>
+      )}
+
+      <div style={dash} />
+
+      {/* Meta */}
+      <table style={tbl}><tbody>
+        {cfg.showReceiptNo && (
+          <tr><td style={tdL}>Order No.:</td><td style={tdR}>{orderRef}</td></tr>
+        )}
+        {cfg.showDateTime && (
+          <tr><td style={tdL} colSpan={2}>{order.createdAt ? fmtDate(new Date(order.createdAt)) : ""}</td></tr>
+        )}
+        {cfg.showCustomer && order.customer?.name && (
+          <tr><td style={tdL}>Customer:</td><td style={tdR}>{order.customer.name}</td></tr>
+        )}
+        {order.customer?.phone && (
+          <tr><td style={tdL}>Phone:</td><td style={tdR}>{order.customer.phone}</td></tr>
+        )}
+        {order.delivery?.city && (
+          <tr><td style={tdL}>City:</td><td style={tdR}>{order.delivery.city}</td></tr>
+        )}
+      </tbody></table>
+
+      <div style={dash} />
+
+      {/* Items */}
+      <table style={tbl}><tbody>
+        {order.items.map((item, i) => (
+          <React.Fragment key={i}>
+            <tr>
+              <td style={{ ...tdL, fontWeight: cfg.boldItemNames ? "bold" : "normal" }} colSpan={2}>
+                {cfg.showSKU && item.sku ? `${item.sku}  ` : ""}{item.productName}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ ...tdL, fontSize: `${fs - 0.5}pt`, paddingBottom: "5pt" }}>
+                {item.quantity} x {fmtRs(item.unitPrice)}
+              </td>
+              <td style={{ ...tdR, fontSize: `${fs - 0.5}pt`, paddingBottom: "5pt" }}>
+                {fmtRs(item.lineTotal)}
+              </td>
+            </tr>
+          </React.Fragment>
+        ))}
+      </tbody></table>
+
+      {cfg.showItemsCount && (
+        <div style={{ fontSize: `${fs - 1}pt` }}>Items count: {totalQty}</div>
+      )}
+
+      <div style={dash} />
+
+      {/* Subtotal */}
+      {cfg.showSubtotal && (
+        <table style={tbl}><tbody>
+          <tr><td style={tdL}>Subtotal:</td><td style={tdR}>{fmtRs(order.subtotal)}</td></tr>
+        </tbody></table>
+      )}
+
+      <div style={solid} />
+
+      {/* Total */}
+      <table style={tbl}><tbody>
+        <tr style={{ fontWeight: cfg.boldTotal ? "bold" : "normal", fontSize: `${fs + 2}pt` }}>
+          <td style={tdL}>TOTAL:</td>
+          <td style={tdR}>{fmtRs(order.total)}</td>
+        </tr>
+      </tbody></table>
+
+      {/* Payment */}
+      {cfg.showPaymentDetails && (
+        <>
+          <div style={dash} />
+          <table style={tbl}><tbody>
+            <tr><td style={tdL}>Payment:</td><td style={tdR}>{payLabel}</td></tr>
+          </tbody></table>
+        </>
+      )}
+
+      {/* Delivery */}
+      {order.delivery?.address && (
+        <>
+          <div style={dash} />
+          <div style={{ fontSize: `${fs - 1}pt` }}>
+            <div>Deliver to:</div>
+            <div>{order.delivery.address}</div>
+            {order.delivery.city && <div>{order.delivery.city}{order.delivery.postalCode ? ` - ${order.delivery.postalCode}` : ""}</div>}
+          </div>
+        </>
+      )}
+
+      {/* Barcode */}
+      {cfg.showBarcode && (
+        <>
+          <div style={dash} />
+          <div style={{ textAlign: "center", paddingTop: "4pt" }}>
+            <svg ref={barcodeRef} style={{ maxWidth: "100%" }} />
+          </div>
+        </>
+      )}
+
+      {/* Footer */}
+      {cfg.showFooter && cfg.footerText && (
+        <div style={{ textAlign: "center", fontSize: `${fs - 1.5}pt`, paddingTop: "6pt" }}>
+          {cfg.footerText}
+        </div>
+      )}
+    </div>
+  );
+}
+
+import React from "react";

@@ -4,6 +4,7 @@ import {
   Search, Package, Globe, Smartphone,
   Truck, XCircle, Printer, AlertCircle, Loader2,
 } from "lucide-react";
+import PrintChoiceModal from "@/components/PrintChoiceModal";
 import {
   adminListOrders, adminListWholesaleOrders,
   adminUpdateOrderStatus, adminUpdateWholesaleOrderStatus,
@@ -71,6 +72,7 @@ function RetailSection() {
   const [query,    setQuery]    = useState("");
   const [actioning, setActioning] = useState<string | null>(null);
   const actioningRef = useRef<string | null>(null);
+  const [printModal, setPrintModal] = useState<{ invoiceUrl: string; receiptUrl: string } | null>(null);
 
   function reload() {
     setLoading(true);
@@ -199,16 +201,14 @@ function RetailSection() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Print bill */}
-                        <Link
-                          to={`/admin/print-order/${o.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Print Bill"
+                        {/* Print */}
+                        <button
+                          title="Print"
+                          onClick={() => setPrintModal({ invoiceUrl: `/admin/print-order/${o.id}`, receiptUrl: `/admin/receipt-order/${o.id}` })}
                           className="inline-flex items-center justify-center rounded-md bg-orange-500 p-1.5 text-white shadow-sm transition-colors hover:bg-orange-600 active:bg-white active:text-orange-500 active:ring-1 active:ring-orange-400"
                         >
                           <Printer className="h-3.5 w-3.5" />
-                        </Link>
+                        </button>
 
                         {/* Dispatch */}
                         {canDispatch && (
@@ -250,6 +250,13 @@ function RetailSection() {
           </table>
         </Card>
       )}
+
+      <PrintChoiceModal
+        open={!!printModal}
+        onClose={() => setPrintModal(null)}
+        invoiceUrl={printModal?.invoiceUrl ?? ""}
+        receiptUrl={printModal?.receiptUrl ?? ""}
+      />
     </>
   );
 }
@@ -263,6 +270,7 @@ function WholesaleSection() {
   const [query,   setQuery]   = useState("");
   const [actioning, setActioning] = useState<string | null>(null);
   const actioningRef = useRef<string | null>(null);
+  const [printModal, setPrintModal] = useState<{ invoiceUrl: string; receiptUrl: string } | null>(null);
 
   function reload() {
     setLoading(true);
@@ -380,16 +388,14 @@ function WholesaleSection() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Print invoice */}
-                        <Link
-                          to={`/admin/print-wholesale-order/${o.docId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Print Invoice"
+                        {/* Print */}
+                        <button
+                          title="Print"
+                          onClick={() => setPrintModal({ invoiceUrl: `/admin/print-wholesale-order/${o.docId}`, receiptUrl: `/admin/receipt-wholesale-order/${o.docId}` })}
                           className="inline-flex items-center justify-center rounded-md bg-orange-500 p-1.5 text-white shadow-sm transition-colors hover:bg-orange-600 active:bg-white active:text-orange-500 active:ring-1 active:ring-orange-400"
                         >
                           <Printer className="h-3.5 w-3.5" />
-                        </Link>
+                        </button>
 
                         {canDispatch && (
                           <button
@@ -428,6 +434,13 @@ function WholesaleSection() {
           </table>
         </Card>
       )}
+
+      <PrintChoiceModal
+        open={!!printModal}
+        onClose={() => setPrintModal(null)}
+        invoiceUrl={printModal?.invoiceUrl ?? ""}
+        receiptUrl={printModal?.receiptUrl ?? ""}
+      />
     </>
   );
 }
