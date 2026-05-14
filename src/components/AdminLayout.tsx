@@ -225,7 +225,7 @@ function SidebarBody({
         <ChevronUp className="h-4 w-4" />
       </button>
 
-      <nav ref={navRef} className="flex-1 overflow-y-auto px-2 py-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+      <nav ref={navRef} className="flex-1 min-h-0 overflow-y-auto px-2 py-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
         {NAV.map((section) => {
           const items = section.items.filter(visible);
           if (!items.length) return null;
