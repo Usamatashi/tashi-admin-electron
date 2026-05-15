@@ -226,8 +226,8 @@ export default function AdminCredit() {
         />
       </div>
 
-      {/* ── Row 2 (Middle): Category tabs ────────────────────────────────── */}
-      <div className="mb-6 flex gap-2 flex-wrap">
+      {/* ── Row 2 (Middle): Category tabs — centred ─────────────────────── */}
+      <div className="mb-6 flex gap-2 flex-wrap justify-center">
         {CATEGORIES.map(({ key, label, icon: Icon, bg }) => (
           <button
             key={key}
@@ -245,42 +245,48 @@ export default function AdminCredit() {
         ))}
       </div>
 
-      {/* ── Row 3: Stylish outstanding summary ───────────────────────────── */}
-      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-4">
-        {/* Grand total */}
-        <div className="sm:col-span-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white shadow-lg">
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5" />
-          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Outstanding</div>
-          <div className="mt-1 text-3xl font-black">{formatPrice(total)}</div>
-          <CreditCard className="absolute bottom-4 right-4 h-8 w-8 text-white/10" />
-        </div>
-
-        {/* POS split */}
-        <SplitCard
-          label="POS Credit"
-          icon={MonitorSmartphone}
-          value={posOut}
-          sub={`${filteredPosBalances.filter((b) => b.outstanding > 0).length} customers`}
-          from="from-amber-400" to="to-orange-500"
+      {/* ── Row 3: Outstanding summary — dashboard card style ────────────── */}
+      <div className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label="Total Outstanding"
+          value={formatPrice(total)}
+          sub="across all channels"
+          icon={CreditCard}
+          iconBg="bg-rose-50"
+          iconColor="text-rose-600"
+          accent="border-t-rose-500"
+          valueColor="text-rose-700"
         />
-
-        {/* Wholesale split */}
-        <SplitCard
+        <StatCard
+          label="POS Credit"
+          value={formatPrice(posOut)}
+          sub={`${filteredPosBalances.filter((b) => b.outstanding > 0).length} customer${filteredPosBalances.filter((b) => b.outstanding > 0).length !== 1 ? "s" : ""}`}
+          icon={MonitorSmartphone}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          accent="border-t-amber-500"
+          valueColor="text-amber-700"
+        />
+        <StatCard
           label="Wholesale"
+          value={formatPrice(showWholesale ? wsOut : 0)}
+          sub={showWholesale ? `${wsBalances.filter((b) => b.outstanding > 0).length} retailer${wsBalances.filter((b) => b.outstanding > 0).length !== 1 ? "s" : ""}` : "Filtered out"}
           icon={Package}
-          value={showWholesale ? wsOut : 0}
-          sub={showWholesale ? `${wsBalances.filter((b) => b.outstanding > 0).length} retailers` : "Not in filter"}
-          from="from-indigo-400" to="to-violet-500"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
+          accent="border-t-indigo-500"
+          valueColor="text-indigo-700"
           dim={!showWholesale}
         />
-
-        {/* Website split */}
-        <SplitCard
+        <StatCard
           label="Website COD"
+          value={formatPrice(showWebsite ? webOut : 0)}
+          sub={showWebsite ? `${filteredWebCustomers.length} customer${filteredWebCustomers.length !== 1 ? "s" : ""}` : "Filtered out"}
           icon={Globe}
-          value={showWebsite ? webOut : 0}
-          sub={showWebsite ? `${filteredWebCustomers.length} customers` : "Not in filter"}
-          from="from-teal-400" to="to-brand-500"
+          iconBg="bg-teal-50"
+          iconColor="text-teal-600"
+          accent="border-t-teal-500"
+          valueColor="text-teal-700"
           dim={!showWebsite}
         />
       </div>
@@ -396,23 +402,23 @@ export default function AdminCredit() {
 }
 
 // ── Stylish split card ──────────────────────────────────────────────────────
-function SplitCard({ label, icon: Icon, value, sub, from, to, dim }: {
-  label: string; icon: React.ElementType; value: number; sub: string;
-  from: string; to: string; dim?: boolean;
+function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor, accent, valueColor, dim }: {
+  label: string; value: string; sub: string;
+  icon: React.ElementType; iconBg: string; iconColor: string;
+  accent: string; valueColor: string; dim?: boolean;
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-2xl p-5 text-white shadow-md transition-opacity",
-      `bg-gradient-to-br ${from} ${to}`,
-      dim && "opacity-40",
+      "relative flex flex-col items-center justify-center text-center overflow-hidden rounded-2xl bg-white border border-ink-100 border-t-4 p-5 shadow-sm transition-all",
+      accent,
+      dim ? "opacity-40" : "hover:-translate-y-1 hover:shadow-md",
     )}>
-      <div className="absolute -right-3 -top-3 h-20 w-20 rounded-full bg-white/10" />
-      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/70">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
+      <div className={cn("inline-flex h-11 w-11 items-center justify-center rounded-2xl mb-3", iconBg)}>
+        <Icon className={cn("h-5 w-5", iconColor)} />
       </div>
-      <div className="mt-1.5 text-2xl font-black">{formatPrice(value)}</div>
-      <div className="mt-0.5 text-[11px] text-white/60">{sub}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-400">{label}</div>
+      <div className={cn("mt-1 font-display text-2xl font-bold", valueColor)}>{value}</div>
+      <div className="mt-0.5 text-[11px] text-ink-400">{sub}</div>
     </div>
   );
 }
