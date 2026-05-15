@@ -902,3 +902,54 @@ export function fileToBase64(file: File): Promise<string> {
     r.readAsDataURL(file);
   });
 }
+
+// ── Credit Management ─────────────────────────────────────────────────────
+export type CreditSale = {
+  id: string;
+  saleNumber: string;
+  customerId: number | null;
+  customerName: string;
+  total: number;
+  subtotal: number;
+  discountAmount: number;
+  items: { productName: string; qty: number; unitPrice: number; lineTotal: number }[];
+  notes: string | null;
+  createdAt: string | null;
+};
+
+export type CreditRepayment = {
+  id: number;
+  customerId: number | null;
+  customerName: string;
+  amount: number;
+  paymentMethod: string;
+  notes: string | null;
+  createdAt: string | null;
+};
+
+export type CreditCustomerBalance = {
+  customerId: number | null;
+  customerName: string;
+  totalCredit: number;
+  totalRepaid: number;
+  outstanding: number;
+};
+
+export async function adminListCreditSales() {
+  return handle<CreditSale[]>(await apiFetch("/api/admin/credit/sales", j()));
+}
+export async function adminListCreditRepayments() {
+  return handle<CreditRepayment[]>(await apiFetch("/api/admin/credit/repayments", j()));
+}
+export async function adminGetCreditCustomerBalances() {
+  return handle<CreditCustomerBalance[]>(await apiFetch("/api/admin/credit/customer-balances", j()));
+}
+export async function adminCreateCreditRepayment(data: {
+  customerId: number | null;
+  customerName: string;
+  amount: number;
+  paymentMethod: string;
+  notes?: string;
+}) {
+  return handle<CreditRepayment>(await apiFetch("/api/admin/credit/repayments", json(data)));
+}

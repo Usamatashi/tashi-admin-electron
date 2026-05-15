@@ -34,6 +34,7 @@ import accountsRouter from "./routes/accounts.js";
 import journalsRouter from "./routes/journals.js";
 import cashBookRouter from "./routes/cash-book.js";
 import financialReportsRouter from "./routes/financial-reports.js";
+import creditRouter from "./routes/credit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -103,6 +104,7 @@ app.use("/api/admin/accounts", accountsRouter);
 app.use("/api/admin/journals", journalsRouter);
 app.use("/api/admin/cash-book", cashBookRouter);
 app.use("/api/admin/financial-reports", financialReportsRouter);
+app.use("/api/admin/credit", creditRouter);
 
 const isProd = process.env.NODE_ENV === "production";
 const isElectron = process.env.IS_ELECTRON === "1";

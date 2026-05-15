@@ -5,7 +5,7 @@ import {
   QrCode, Megaphone, Type, Users, MapPin, MessageCircle, ShieldCheck, LogOut, Loader2,
   Menu, X, MonitorSmartphone, Layers, UserSquare2, ClipboardList, RotateCcw,
   Briefcase, Truck, TrendingDown, ShoppingCart, BookOpen, BookMarked, Wallet, FileBarChart,
-  Printer, ChevronUp, ChevronDown,
+  Printer, ChevronUp, ChevronDown, CreditCard,
 } from "lucide-react";
 import {
   adminLogout, adminMe, adminMyPermissions,
@@ -46,6 +46,7 @@ const NAV: NavSection[] = [
     title: "Point of Sale",
     items: [
       { to: "/admin/pos", icon: MonitorSmartphone, label: "POS Terminal" },
+      { to: "/admin/credit", icon: CreditCard, label: "Credit" },
       { to: "/admin/print-settings", icon: Printer, label: "Print Settings" },
     ],
   },

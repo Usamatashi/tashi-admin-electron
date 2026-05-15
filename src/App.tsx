@@ -50,6 +50,7 @@ const AdminOrderReceipt = lazy(() => import("@/pages/AdminOrderReceipt"));
 const AdminWholesaleOrderPrint = lazy(() => import("@/pages/AdminWholesaleOrderPrint"));
 const AdminWholesaleOrderReceipt = lazy(() => import("@/pages/AdminWholesaleOrderReceipt"));
 const AdminPrintSettings = lazy(() => import("@/pages/AdminPrintSettings"));
+const AdminCredit = lazy(() => import("@/pages/AdminCredit"));
 
 function PageLoader() {
   return (
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="cash-book" element={<AdminCashBook />} />
             <Route path="financial-reports" element={<AdminFinancialReports />} />
             <Route path="print-settings" element={<AdminPrintSettings />} />
+            <Route path="credit" element={<AdminCredit />} />
           </Route>
         </Routes>
       </Suspense>

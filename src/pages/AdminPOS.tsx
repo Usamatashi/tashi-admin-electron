@@ -19,6 +19,7 @@ const PAYMENT_METHODS = [
   { key: "card", label: "Card" },
   { key: "easypaisa", label: "Easypaisa" },
   { key: "jazzcash", label: "JazzCash" },
+  { key: "credit", label: "Credit" },
 ];
 
 const TYPE_BADGE: Record<string, string> = {
@@ -636,14 +637,19 @@ export default function AdminPOS() {
             {discountAmount > 0 && <div className="flex justify-between text-red-600"><span>Discount ({discountPct}%)</span><span>-{formatPrice(discountAmount)}</span></div>}
             <div className="flex justify-between border-t border-ink-100 pt-1 text-base font-bold text-ink-900"><span>Total</span><span>{formatPrice(total)}</span></div>
           </div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-5 gap-1">
             {PAYMENT_METHODS.map((m) => (
               <button key={m.key} onClick={() => setPaymentMethod(m.key)}
-                className={`rounded-lg py-2 text-xs font-semibold transition-colors ${paymentMethod === m.key ? "bg-brand-500 text-white shadow-sm" : "bg-white border border-ink-200 text-ink-600 hover:bg-ink-50"}`}>
+                className={`rounded-lg py-2 text-[11px] font-semibold transition-colors ${paymentMethod === m.key ? (m.key === "credit" ? "bg-amber-500 text-white shadow-sm" : "bg-brand-500 text-white shadow-sm") : "bg-white border border-ink-200 text-ink-600 hover:bg-ink-50"}`}>
                 {m.label}
               </button>
             ))}
           </div>
+          {paymentMethod === "credit" && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 font-medium">
+              This sale will be recorded as a credit — no cash is collected now. The customer's outstanding balance will increase.
+            </div>
+          )}
           {paymentMethod === "cash" && (
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-ink-500 w-28">Cash Received</label>

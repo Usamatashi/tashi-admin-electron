@@ -41,7 +41,7 @@ router.get("/", async (req, res) => {
 
     const [
       posSalesSnap, expensesSnap, purchasesSnap,
-      posReturnsSnap, journalSnap, ordersSnap,
+      posReturnsSnap, journalSnap, ordersSnap, creditRepaymentsSnap,
     ] = await Promise.all([
       db.collection("pos_sales").orderBy("createdAt", "desc").get(),
       db.collection("expenses").get(),
@@ -49,16 +49,18 @@ router.get("/", async (req, res) => {
       db.collection("pos_returns").get(),
       db.collection("journal_entries").where("status", "==", "posted").get(),
       db.collection("orders").get(),
+      db.collection("credit_repayments").get(),
     ]);
 
     const entries = [];
 
-    // POS sales → receipts (cash, card, easypaisa, jazzcash)
+    // POS sales → receipts (cash, card, easypaisa, jazzcash — NOT credit)
     for (const d of posSalesSnap.docs) {
       const s = d.data();
       const date = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
       if (!inRange(date)) continue;
       const method = s.paymentMethod || "cash";
+      if (method === "credit") continue; // credit sales are not cash receipts
       entries.push({
         date: isoDate(date),
         dateObj: date,
@@ -152,6 +154,25 @@ router.get("/", async (req, res) => {
         receipt: total,
         payment: 0,
         paymentMethod: "wholesale",
+        sourceId: d.id,
+      });
+    }
+
+    // Credit repayments → cash receipts (when credit is collected)
+    for (const d of creditRepaymentsSnap.docs) {
+      const r = d.data();
+      const date = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt || 0);
+      if (!inRange(date)) continue;
+      entries.push({
+        date: isoDate(date),
+        dateObj: date,
+        type: "receipt",
+        source: "credit_repayment",
+        ref: `CR-${d.id}`,
+        description: `Credit Repayment — ${r.customerName || "Customer"} (${r.paymentMethod || "cash"})`,
+        receipt: toNum(r.amount),
+        payment: 0,
+        paymentMethod: r.paymentMethod || "cash",
         sourceId: d.id,
       });
     }
