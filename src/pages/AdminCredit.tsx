@@ -39,9 +39,20 @@ function inRange(dateStr: string | null, from: string, to: string): boolean {
   return true;
 }
 
+const CATEGORY_DEFAULTS: Record<Category, AccountType> = {
+  pos:       "mechanic",
+  wholesale: "retailer",
+  website:   "consumer",
+};
+
 export default function AdminCredit() {
   const [category,    setCategory]    = useState<Category>("pos");
-  const [accountType, setAccountType] = useState<AccountType>("all");
+  const [accountType, setAccountType] = useState<AccountType>("mechanic");
+
+  function switchCategory(cat: Category) {
+    setCategory(cat);
+    setAccountType(CATEGORY_DEFAULTS[cat]);
+  }
   const [dateFrom,    setDateFrom]    = useState("");
   const [dateTo,      setDateTo]      = useState("");
   const [loading,     setLoading]     = useState(true);
@@ -167,29 +178,23 @@ export default function AdminCredit() {
 
   return (
     <PageShell>
-      <PageHeader title="Credit & Receivables" subtitle="Outstanding balances across POS, Wholesale, and Website" />
+      <PageHeader
+        title="Credit & Receivables"
+        subtitle="Outstanding balances across POS, Wholesale, and Website"
+        actions={
+          category === "wholesale" ? (
+            <button
+              onClick={() => { setShowWsNew(true); setWsErr(null); }}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-600"
+            >
+              <Plus className="h-4 w-4" /> Record Payment
+            </button>
+          ) : undefined
+        }
+      />
 
-      {/* ── Step 1: Category tabs at the very top ─────────────────────────── */}
-      <div className="mb-5 flex gap-2 flex-wrap">
-        {CATEGORIES.map(({ key, label, icon: Icon, bg }) => (
-          <button
-            key={key}
-            onClick={() => setCategory(key)}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all",
-              category === key
-                ? `${bg} text-white shadow-md scale-[1.03]`
-                : "border border-ink-200 bg-white text-ink-600 hover:border-ink-300 hover:bg-ink-50",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Step 2: Account filter + Date range on one row ────────────────── */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      {/* ── Row 1: Account filter + Date range ───────────────────────────── */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         {/* Account pills */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Account</span>
@@ -201,8 +206,8 @@ export default function AdminCredit() {
                 className={cn(
                   "rounded-full px-3.5 py-1 text-xs font-semibold transition-colors",
                   accountType === t.key
-                    ? "bg-ink-900 text-white shadow-sm"
-                    : "text-ink-500 hover:bg-ink-100 hover:text-ink-900",
+                    ? "bg-brand-500 text-white shadow-sm"
+                    : "text-ink-500 hover:bg-brand-50 hover:text-brand-700",
                 )}
               >
                 {t.label}
@@ -221,7 +226,26 @@ export default function AdminCredit() {
         />
       </div>
 
-      {/* ── Step 3: Stylish outstanding summary ──────────────────────────── */}
+      {/* ── Row 2 (Middle): Category tabs ────────────────────────────────── */}
+      <div className="mb-6 flex gap-2 flex-wrap">
+        {CATEGORIES.map(({ key, label, icon: Icon, bg }) => (
+          <button
+            key={key}
+            onClick={() => switchCategory(key)}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all",
+              category === key
+                ? `${bg} text-white shadow-md scale-[1.03]`
+                : "border border-ink-200 bg-white text-ink-600 hover:border-ink-300 hover:bg-ink-50",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Row 3: Stylish outstanding summary ───────────────────────────── */}
       <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-4">
         {/* Grand total */}
         <div className="sm:col-span-1 relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white shadow-lg">
