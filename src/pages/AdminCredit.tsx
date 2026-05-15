@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CreditCard, AlertCircle, CheckCircle2, Plus, Loader2,
   ChevronRight, X, Globe, MonitorSmartphone, Package, Check,
-  CalendarDays,
 } from "lucide-react";
+import { DateRangeFilter } from "@/components/admin/DateRangeFilter";
 import {
   adminListCreditSales, adminListCreditRepayments, adminGetCreditCustomerBalances,
   adminCreateCreditRepayment, adminListWebsiteCredit,
@@ -215,29 +215,10 @@ export default function AdminCredit() {
         <div className="hidden sm:block h-7 w-px bg-ink-200" />
 
         {/* Date range */}
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-3.5 w-3.5 text-ink-400" />
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">From</span>
-          <input
-            type="date" value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs text-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-          />
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">To</span>
-          <input
-            type="date" value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs text-ink-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(""); setDateTo(""); }}
-              className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <DateRangeFilter
+          from={dateFrom} to={dateTo}
+          onFromChange={setDateFrom} onToChange={setDateTo}
+        />
       </div>
 
       {/* ── Step 3: Stylish outstanding summary ──────────────────────────── */}
