@@ -930,9 +930,25 @@ export type CreditRepayment = {
 export type CreditCustomerBalance = {
   customerId: number | null;
   customerName: string;
+  customerType: string | null;
   totalCredit: number;
   totalRepaid: number;
   outstanding: number;
+};
+
+export type WebsiteCreditOrder = {
+  id: string;
+  total: number;
+  createdAt: string | null;
+  status: string;
+  city: string | null;
+};
+
+export type WebsiteCreditCustomer = {
+  customerName: string;
+  customerPhone: string;
+  totalOutstanding: number;
+  orders: WebsiteCreditOrder[];
 };
 
 export async function adminListCreditSales() {
@@ -952,4 +968,7 @@ export async function adminCreateCreditRepayment(data: {
   notes?: string;
 }) {
   return handle<CreditRepayment>(await apiFetch("/api/admin/credit/repayments", json(data)));
+}
+export async function adminListWebsiteCredit() {
+  return handle<WebsiteCreditCustomer[]>(await apiFetch("/api/admin/credit/website", j()));
 }

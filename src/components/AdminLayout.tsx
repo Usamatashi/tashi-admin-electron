@@ -29,7 +29,6 @@ const NAV: NavSection[] = [
       { to: "/admin/orders", icon: ShoppingBag, label: "Orders", perm: "card_orders" },
       { to: "/admin/products", icon: Package, label: "Products", perm: "tab_products" },
       { to: "/admin/claims", icon: ShieldCheck, label: "Claims", perm: "card_claims" },
-      { to: "/admin/payments", icon: Receipt, label: "Payments", perm: "card_payments" },
       { to: "/admin/commission", icon: CircleDollarSign, label: "Commission", perm: "card_commission" },
       { to: "/admin/pos-sales", icon: ClipboardList, label: "Sales History" },
     ],
@@ -46,13 +45,13 @@ const NAV: NavSection[] = [
     title: "Point of Sale",
     items: [
       { to: "/admin/pos", icon: MonitorSmartphone, label: "POS Terminal" },
-      { to: "/admin/credit", icon: CreditCard, label: "Credit" },
       { to: "/admin/print-settings", icon: Printer, label: "Print Settings" },
     ],
   },
   {
     title: "Accounting",
     items: [
+      { to: "/admin/credit", icon: CreditCard, label: "Credit & Receivables" },
       { to: "/admin/suppliers", icon: Truck, label: "Suppliers" },
       { to: "/admin/expenses", icon: TrendingDown, label: "Expenses" },
       { to: "/admin/purchases", icon: ShoppingCart, label: "Purchases" },

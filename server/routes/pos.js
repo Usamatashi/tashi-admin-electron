@@ -16,7 +16,7 @@ router.get("/", async (_req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { customerId, customerName, items, subtotal, discountAmount, discountPct, total, paymentMethod, notes } = req.body;
+    const { customerId, customerName, customerType, items, subtotal, discountAmount, discountPct, total, paymentMethod, notes } = req.body;
     if (!items?.length) return res.status(400).json({ error: "At least one item is required" });
     const id = await nextId("pos_sales");
     const saleNumber = `SALE-${String(id).padStart(6, "0")}`;
@@ -24,6 +24,7 @@ router.post("/", async (req, res) => {
       id, saleNumber,
       customerId: customerId || null,
       customerName: customerName || "Walk-in",
+      customerType: customerType || null,
       items, subtotal: Number(subtotal || 0),
       discountAmount: Number(discountAmount || 0),
       discountPct: Number(discountPct || 0),

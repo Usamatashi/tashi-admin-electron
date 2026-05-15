@@ -321,6 +321,7 @@ export default function AdminPOS() {
       const result = await adminCreatePOSSale({
         customerId: selectedCustomer?.id || null,
         customerName: selectedCustomer?.name || "Walk-in",
+        customerType: selectedCustomer?.customerType || null,
         items: cart.map((i) => ({ productId: i.productId, productName: i.productName, sku: i.sku, qty: i.qty, unitPrice: i.unitPrice, discountPct: i.discountPct, lineTotal: i.lineTotal })),
         subtotal, discountAmount, discountPct, total,
         paymentMethod,

@@ -49,7 +49,7 @@ router.get("/repayments", async (_req, res) => {
   }
 });
 
-// GET /api/admin/credit/customer-balances — per-customer summary
+// GET /api/admin/credit/customer-balances — per-customer POS credit summary
 router.get("/customer-balances", async (_req, res) => {
   try {
     const [salesSnap, repaymentsSnap] = await Promise.all([
@@ -64,14 +64,21 @@ router.get("/customer-balances", async (_req, res) => {
     for (const d of salesSnap.docs) {
       const s = d.data();
       const key = s.customerId != null ? `id:${s.customerId}` : `name:${s.customerName || "Walk-in"}`;
-      if (!map[key]) map[key] = { customerId: s.customerId || null, customerName: s.customerName || "Walk-in", totalCredit: 0, totalRepaid: 0 };
+      if (!map[key]) map[key] = {
+        customerId: s.customerId || null,
+        customerName: s.customerName || "Walk-in",
+        customerType: s.customerType || null,
+        totalCredit: 0,
+        totalRepaid: 0,
+      };
       map[key].totalCredit += toNum(s.total);
+      if (!map[key].customerType && s.customerType) map[key].customerType = s.customerType;
     }
 
     for (const d of repaymentsSnap.docs) {
       const r = d.data();
       const key = r.customerId != null ? `id:${r.customerId}` : `name:${r.customerName || "Walk-in"}`;
-      if (!map[key]) map[key] = { customerId: r.customerId || null, customerName: r.customerName || "Walk-in", totalCredit: 0, totalRepaid: 0 };
+      if (!map[key]) map[key] = { customerId: r.customerId || null, customerName: r.customerName || "Walk-in", customerType: null, totalCredit: 0, totalRepaid: 0 };
       map[key].totalRepaid += toNum(r.amount);
     }
 
@@ -81,6 +88,45 @@ router.get("/customer-balances", async (_req, res) => {
     }));
 
     result.sort((a, b) => b.outstanding - a.outstanding);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/credit/website — dispatched COD website orders (outstanding)
+router.get("/website", async (_req, res) => {
+  try {
+    let snap;
+    try {
+      snap = await db.collection("retail_orders").where("status", "==", "dispatched").get();
+    } catch {
+      snap = await db.collection("retail_orders").get();
+    }
+
+    const customers = {};
+    for (const d of snap.docs) {
+      const o = d.data();
+      if (o.status !== "dispatched") continue;
+      if (o.payment?.method !== "cod") continue;
+      const phone = o.customer?.phone || "";
+      const name = o.customer?.name || "Unknown";
+      const key = phone || name;
+      if (!customers[key]) {
+        customers[key] = { customerName: name, customerPhone: phone, totalOutstanding: 0, orders: [] };
+      }
+      const total = toNum(o.total || o.subtotal);
+      customers[key].totalOutstanding += total;
+      customers[key].orders.push({
+        id: d.id,
+        total,
+        createdAt: toISOString(o.createdAt),
+        status: o.status,
+        city: o.delivery?.city || null,
+      });
+    }
+
+    const result = Object.values(customers).sort((a, b) => b.totalOutstanding - a.totalOutstanding);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
