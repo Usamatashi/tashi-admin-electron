@@ -4,6 +4,7 @@ import { useRef } from "react";
 import {
   Printer, Save, Plus, Trash2, Star, Settings2, Receipt,
   ChevronDown, ChevronUp, Monitor, Layers, SlidersHorizontal, Cpu,
+  QrCode, FileText, AlertCircle,
 } from "lucide-react";
 import {
   loadReceiptSettings, saveReceiptSettings,
@@ -572,6 +573,75 @@ export default function AdminPrintSettings() {
       {/* ── PRINTERS TAB ── */}
       {tab === "printers" && (
         <div className="max-w-3xl space-y-4">
+
+          {/* Printer Assignment */}
+          <Card className="p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-brand-500" />
+              <span className="text-sm font-semibold text-ink-800">Printer Assignment</span>
+              <span className="text-[11px] text-ink-400 ml-1">— assign a printer to each print type</span>
+            </div>
+
+            {s.printers.length === 0 && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
+                <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                Add at least one printer below before assigning print types.
+              </div>
+            )}
+
+            <div className="space-y-0 divide-y divide-ink-100 rounded-lg border border-ink-200 overflow-hidden">
+              {/* QR */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-white">
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.qrPrinterId ? "bg-green-500" : "bg-ink-300"}`} />
+                <QrCode className="h-4 w-4 text-ink-500 shrink-0" />
+                <span className="w-36 shrink-0 text-sm text-ink-700 font-medium">QR Label Printer</span>
+                <select
+                  value={s.qrPrinterId}
+                  onChange={(e) => setS((prev) => ({ ...prev, qrPrinterId: e.target.value }))}
+                  className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <option value="">— Not assigned —</option>
+                  {s.printers.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Receipt */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-white">
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.receiptPrinterId ? "bg-green-500" : "bg-ink-300"}`} />
+                <Receipt className="h-4 w-4 text-ink-500 shrink-0" />
+                <span className="w-36 shrink-0 text-sm text-ink-700 font-medium">Receipt Printer</span>
+                <select
+                  value={s.receiptPrinterId}
+                  onChange={(e) => setS((prev) => ({ ...prev, receiptPrinterId: e.target.value }))}
+                  className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <option value="">— Not assigned —</option>
+                  {s.printers.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Invoice */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-white">
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.invoicePrinterId ? "bg-green-500" : "bg-ink-300"}`} />
+                <FileText className="h-4 w-4 text-ink-500 shrink-0" />
+                <span className="w-36 shrink-0 text-sm text-ink-700 font-medium">Invoice Printer</span>
+                <select
+                  value={s.invoicePrinterId}
+                  onChange={(e) => setS((prev) => ({ ...prev, invoicePrinterId: e.target.value }))}
+                  className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <option value="">— Not assigned —</option>
+                  {s.printers.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </Card>
 
           {/* Add printer */}
           <Card className="p-5">

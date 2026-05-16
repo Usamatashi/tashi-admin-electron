@@ -93,6 +93,9 @@ export type ReceiptSettings = {
   boldItemNames: boolean;
   printers: PrinterConfig[];
   defaultPrinterId: string;
+  qrPrinterId: string;
+  receiptPrinterId: string;
+  invoicePrinterId: string;
 };
 
 export const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
@@ -123,6 +126,9 @@ export const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
   boldItemNames: true,
   printers: [],
   defaultPrinterId: "",
+  qrPrinterId: "",
+  receiptPrinterId: "",
+  invoicePrinterId: "",
 };
 
 const KEY = "tashi_receipt_settings";
