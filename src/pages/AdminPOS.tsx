@@ -345,18 +345,34 @@ export default function AdminPOS() {
     }
   }
 
+  async function _doPrintToElectronPrinter(printerName: string) {
+    const cfg = loadReceiptSettings();
+    const widthMm = cfg.receiptPaperWidthMm || 72;
+    const style = document.createElement("style");
+    style.id = "pos-receipt-print-style";
+    style.textContent = `@media print { @page { size: ${widthMm}mm auto; margin: 3mm 4mm; } aside, header, .print\\:hidden { display: none !important; } html, body, #root { height: auto !important; min-height: unset !important; background: #fff !important; } .thermal-receipt { display: block !important; } }`;
+    document.head.appendChild(style);
+    await new Promise<void>((r) => setTimeout(r, 300));
+    const eAPI = (window as any).electronAPI;
+    await eAPI.printToPrinter({
+      deviceName: printerName,
+      silent: true,
+      widthMicrons: widthMm * 1000,
+    });
+    document.head.removeChild(style);
+  }
+
   async function handleReceiptPrint() {
     const eAPI = (window as any).electronAPI;
     if (eAPI?.getPrinters) {
       const printers = await eAPI.getPrinters();
       setAvailableReceiptPrinters(printers);
       // Use configured receipt printer from Print Settings if set
-      const { loadReceiptSettings } = await import("@/lib/printSettings");
       const configured = loadReceiptSettings().receiptPrinterId;
       const configuredExists = configured && printers.some((p: any) => p.name === configured);
       if (configuredExists) {
         setPrintingReceipt(true);
-        await eAPI.printToPrinter({ deviceName: configured, silent: true });
+        await _doPrintToElectronPrinter(configured);
         localStorage.setItem("tashi_last_receipt_printer", configured);
         setLastUsedReceiptPrinter(configured);
         setPrintingReceipt(false);
@@ -369,7 +385,15 @@ export default function AdminPOS() {
         setShowReceiptPrinterPicker(true);
       }
     } else {
+      // Browser fallback — inject page size from settings then print
+      const cfg = loadReceiptSettings();
+      const widthMm = cfg.receiptPaperWidthMm || 72;
+      const style = document.createElement("style");
+      style.id = "pos-receipt-print-style";
+      style.textContent = `@media print { @page { size: ${widthMm}mm auto; margin: 3mm 4mm; } }`;
+      document.head.appendChild(style);
       window.print();
+      document.head.removeChild(style);
     }
   }
 
@@ -377,8 +401,7 @@ export default function AdminPOS() {
     if (!pickedReceiptPrinter) return;
     setPrintingReceipt(true);
     setShowReceiptPrinterPicker(false);
-    const eAPI = (window as any).electronAPI;
-    await eAPI.printToPrinter({ deviceName: pickedReceiptPrinter, silent: true });
+    await _doPrintToElectronPrinter(pickedReceiptPrinter);
     localStorage.setItem("tashi_last_receipt_printer", pickedReceiptPrinter);
     setLastUsedReceiptPrinter(pickedReceiptPrinter);
     setPrintingReceipt(false);

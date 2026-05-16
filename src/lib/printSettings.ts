@@ -96,6 +96,7 @@ export type ReceiptSettings = {
   qrPrinterId: string;
   receiptPrinterId: string;
   invoicePrinterId: string;
+  receiptPaperWidthMm: number;
 };
 
 export const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
@@ -129,6 +130,7 @@ export const DEFAULT_RECEIPT_SETTINGS: ReceiptSettings = {
   qrPrinterId: "",
   receiptPrinterId: "",
   invoicePrinterId: "",
+  receiptPaperWidthMm: 72,
 };
 
 const KEY = "tashi_receipt_settings";

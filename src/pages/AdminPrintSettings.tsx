@@ -620,14 +620,14 @@ export default function AdminPrintSettings() {
               </div>
 
               {/* Receipt */}
-              <div className="flex items-center gap-4 px-4 py-3 bg-white">
+              <div className="flex items-center gap-4 px-4 py-3 bg-white flex-wrap">
                 <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.receiptPrinterId ? "bg-green-500" : "bg-ink-300"}`} />
                 <Receipt className="h-4 w-4 text-ink-500 shrink-0" />
                 <span className="w-36 shrink-0 text-sm text-ink-700 font-medium">Receipt Printer</span>
                 <select
                   value={s.receiptPrinterId}
                   onChange={(e) => setS((prev) => ({ ...prev, receiptPrinterId: e.target.value }))}
-                  className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  className="flex-1 min-w-[160px] rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
                 >
                   <option value="">— Not assigned —</option>
                   {systemPrinters.map((p) => (
@@ -636,6 +636,18 @@ export default function AdminPrintSettings() {
                     </option>
                   ))}
                 </select>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-ink-500 whitespace-nowrap">Paper width</span>
+                  <select
+                    value={s.receiptPaperWidthMm}
+                    onChange={(e) => setS((prev) => ({ ...prev, receiptPaperWidthMm: Number(e.target.value) }))}
+                    className="rounded-md border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  >
+                    <option value={58}>58 mm</option>
+                    <option value={72}>72 mm</option>
+                    <option value={80}>80 mm</option>
+                  </select>
+                </div>
               </div>
 
               {/* Invoice */}
