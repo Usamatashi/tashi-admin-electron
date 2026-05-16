@@ -379,6 +379,16 @@ export default function AdminPrintSettings() {
   const [saved, setSaved] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
+  const [systemPrinters, setSystemPrinters] = useState<{ name: string; isDefault: boolean }[]>([]);
+
+  useEffect(() => {
+    const eAPI = (window as any).electronAPI;
+    if (eAPI?.getPrinters) {
+      eAPI.getPrinters().then((list: { name: string; isDefault: boolean }[]) => {
+        setSystemPrinters(list);
+      }).catch(() => {});
+    }
+  }, []);
 
   function update<K extends keyof ReceiptSettings>(key: K, value: ReceiptSettings[K]) {
     setS((prev) => ({ ...prev, [key]: value }));
@@ -582,10 +592,10 @@ export default function AdminPrintSettings() {
               <span className="text-[11px] text-ink-400 ml-1">— assign a printer to each print type</span>
             </div>
 
-            {s.printers.length === 0 && (
+            {systemPrinters.length === 0 && (
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
                 <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
-                Add at least one printer below before assigning print types.
+                No system printers detected. Printers will appear here when the app is running on your Windows PC.
               </div>
             )}
 
@@ -601,8 +611,10 @@ export default function AdminPrintSettings() {
                   className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
                 >
                   <option value="">— Not assigned —</option>
-                  {s.printers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  {systemPrinters.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}{p.isDefault ? " (Default)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -618,8 +630,10 @@ export default function AdminPrintSettings() {
                   className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
                 >
                   <option value="">— Not assigned —</option>
-                  {s.printers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  {systemPrinters.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}{p.isDefault ? " (Default)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -635,8 +649,10 @@ export default function AdminPrintSettings() {
                   className="flex-1 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-400"
                 >
                   <option value="">— Not assigned —</option>
-                  {s.printers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  {systemPrinters.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}{p.isDefault ? " (Default)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>
