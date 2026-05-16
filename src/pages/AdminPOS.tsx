@@ -350,12 +350,24 @@ export default function AdminPOS() {
     if (eAPI?.getPrinters) {
       const printers = await eAPI.getPrinters();
       setAvailableReceiptPrinters(printers);
-      const hasLastUsed = lastUsedReceiptPrinter && printers.some((p: any) => p.name === lastUsedReceiptPrinter);
-      const def = hasLastUsed
-        ? lastUsedReceiptPrinter
-        : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
-      setPickedReceiptPrinter(def);
-      setShowReceiptPrinterPicker(true);
+      // Use configured receipt printer from Print Settings if set
+      const { loadReceiptSettings } = await import("@/lib/printSettings");
+      const configured = loadReceiptSettings().receiptPrinterId;
+      const configuredExists = configured && printers.some((p: any) => p.name === configured);
+      if (configuredExists) {
+        setPrintingReceipt(true);
+        await eAPI.printToPrinter({ deviceName: configured, silent: true });
+        localStorage.setItem("tashi_last_receipt_printer", configured);
+        setLastUsedReceiptPrinter(configured);
+        setPrintingReceipt(false);
+      } else {
+        const hasLastUsed = lastUsedReceiptPrinter && printers.some((p: any) => p.name === lastUsedReceiptPrinter);
+        const def = hasLastUsed
+          ? lastUsedReceiptPrinter
+          : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
+        setPickedReceiptPrinter(def);
+        setShowReceiptPrinterPicker(true);
+      }
     } else {
       window.print();
     }

@@ -280,12 +280,43 @@ export default function AdminPrintLabels() {
     if (eAPI?.getPrinters) {
       const printers = await eAPI.getPrinters();
       setAvailablePrinters(printers);
-      const hasLastUsed = lastUsedPrinter && printers.some((p: any) => p.name === lastUsedPrinter);
-      const def = hasLastUsed
-        ? lastUsedPrinter
-        : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
-      setPickedPrinter(def);
-      setShowPrinterPicker(true);
+      // Use configured QR printer from Print Settings if set
+      const { loadReceiptSettings } = await import("@/lib/printSettings");
+      const configured = loadReceiptSettings().qrPrinterId;
+      const configuredExists = configured && printers.some((p: any) => p.name === configured);
+      if (configuredExists) {
+        setPickedPrinter(configured);
+        // print directly without showing picker
+        setPrinting(true);
+        const wCm = settings.width;
+        const hCm = settings.height;
+        const style = document.createElement("style");
+        style.id = "qr-direct-print-style";
+        style.textContent = `@media print { @page { size: ${wCm}cm ${hCm}cm; margin: 0; } body > * { display: none !important; } #qr-direct-print-sheet { display: block !important; } }`;
+        document.head.appendChild(style);
+        setShowPrintSheet(true);
+        await new Promise<void>((r) => setTimeout(r, 400));
+        await eAPI.printToPrinter({
+          deviceName: configured,
+          silent: true,
+          widthMicrons: Math.round(wCm * 10000),
+          heightMicrons: Math.round(hCm * 10000),
+          copies: settings.copies,
+        });
+        recordSizeUsed(wCm, hCm);
+        localStorage.setItem("tashi_last_printer", configured);
+        setLastUsedPrinter(configured);
+        setShowPrintSheet(false);
+        document.head.removeChild(style);
+        setPrinting(false);
+      } else {
+        const hasLastUsed = lastUsedPrinter && printers.some((p: any) => p.name === lastUsedPrinter);
+        const def = hasLastUsed
+          ? lastUsedPrinter
+          : printers.find((p: any) => p.isDefault)?.name ?? printers[0]?.name ?? "";
+        setPickedPrinter(def);
+        setShowPrinterPicker(true);
+      }
     } else {
       await doWindowPrint();
     }
