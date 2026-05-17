@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onServerCrashed: (cb) => ipcRenderer.on("server-crashed", (_e, code) => cb(code)),
   getPrinters: () => ipcRenderer.invoke("get-printers"),
   printToPrinter: (opts) => ipcRenderer.invoke("print-to-printer", opts),
+  printSenderWindow: (opts) => ipcRenderer.invoke("print-sender-window", opts),
 });
