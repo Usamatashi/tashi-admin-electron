@@ -161,29 +161,10 @@ function createMainWindow() {
 
   mainWindow.webContents.setWindowOpenHandler(({ url: u }) => {
     if (u.startsWith("http://127.0.0.1") || u.startsWith("http://localhost")) {
-      return {
-        action: "allow",
-        overrideBrowserWindowOptions: {
-          width: 900,
-          height: 700,
-          autoHideMenuBar: true,
-          webPreferences: {
-            preload: path.join(__dirname, "preload.cjs"),
-            contextIsolation: true,
-            nodeIntegration: false,
-          },
-        },
-      };
+      return { action: "allow" };
     }
     shell.openExternal(u);
     return { action: "deny" };
-  });
-
-  mainWindow.webContents.on("did-create-window", (popup) => {
-    popup.webContents.once("did-finish-load", () => {
-      popup.show();
-    });
-    popup.on("closed", () => {});
   });
 
   mainWindow.on("closed", () => { mainWindow = null; });
@@ -240,37 +221,15 @@ ipcMain.handle("get-printers", async () => {
 ipcMain.handle("print-to-printer", (_e, { deviceName, widthMicrons, heightMicrons, silent, copies }) => {
   return new Promise((resolve) => {
     if (!mainWindow) return resolve({ success: false, error: "No window" });
-    // For thermal/roll printers: if only width is given, use a tall default height (500 mm).
-    // The thermal printer cuts at the actual content end regardless of the page height.
-    let pageSize = undefined;
-    if (widthMicrons) {
-      pageSize = { width: widthMicrons, height: heightMicrons ?? 500000 };
-    }
     const opts = {
       silent: silent ?? false,
       copies: copies ?? 1,
       ...(deviceName ? { deviceName } : {}),
-      ...(pageSize ? { pageSize } : {}),
+      pageSize: (widthMicrons && heightMicrons)
+        ? { width: widthMicrons, height: heightMicrons }
+        : undefined,
     };
     mainWindow.webContents.print(opts, (success, reason) => {
-      resolve({ success, reason: reason ?? null });
-    });
-  });
-});
-
-ipcMain.handle("print-sender-window", (_e, { deviceName, widthMicrons, heightMicrons, silent, copies }) => {
-  return new Promise((resolve) => {
-    let pageSize = undefined;
-    if (widthMicrons) {
-      pageSize = { width: widthMicrons, height: heightMicrons ?? 500000 };
-    }
-    const opts = {
-      silent: silent ?? true,
-      copies: copies ?? 1,
-      ...(deviceName ? { deviceName } : {}),
-      ...(pageSize ? { pageSize } : {}),
-    };
-    _e.sender.print(opts, (success, reason) => {
       resolve({ success, reason: reason ?? null });
     });
   });
