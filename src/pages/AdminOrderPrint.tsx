@@ -8,6 +8,7 @@ import {
   PAYMENT_LABEL,
   type AdminOrder,
 } from "@/lib/admin";
+import { loadReceiptSettings } from "@/lib/printSettings";
 
 export default function AdminOrderPrint() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -22,6 +23,21 @@ export default function AdminOrderPrint() {
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load order"))
       .finally(() => setLoading(false));
   }, [orderId]);
+
+  useEffect(() => {
+    if (!order) return;
+    const eAPI = (window as any).electronAPI;
+    if (!eAPI?.printSenderWindow) return;
+    const cfg = loadReceiptSettings();
+    const timer = setTimeout(async () => {
+      await eAPI.printSenderWindow({
+        deviceName: cfg.invoicePrinterId || undefined,
+        silent: true,
+      });
+      window.close();
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [order]);
 
   if (loading) {
     return (

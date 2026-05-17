@@ -7,6 +7,7 @@ import {
   formatPrice,
   type WholesaleOrderDetail,
 } from "@/lib/admin";
+import { loadReceiptSettings } from "@/lib/printSettings";
 
 export default function AdminWholesaleOrderPrint() {
   const { docId } = useParams<{ docId: string }>();
@@ -21,6 +22,21 @@ export default function AdminWholesaleOrderPrint() {
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load order"))
       .finally(() => setLoading(false));
   }, [docId]);
+
+  useEffect(() => {
+    if (!order) return;
+    const eAPI = (window as any).electronAPI;
+    if (!eAPI?.printSenderWindow) return;
+    const cfg = loadReceiptSettings();
+    const timer = setTimeout(async () => {
+      await eAPI.printSenderWindow({
+        deviceName: cfg.invoicePrinterId || undefined,
+        silent: true,
+      });
+      window.close();
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [order]);
 
   if (loading) {
     return (

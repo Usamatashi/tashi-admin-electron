@@ -32,6 +32,23 @@ export default function AdminWholesaleOrderReceipt() {
       .finally(() => setLoading(false));
   }, [docId]);
 
+  useEffect(() => {
+    if (!order) return;
+    const eAPI = (window as any).electronAPI;
+    if (!eAPI?.printSenderWindow) return;
+    const cfg = loadReceiptSettings();
+    const widthMm = cfg.receiptPaperWidthMm || 72;
+    const timer = setTimeout(async () => {
+      await eAPI.printSenderWindow({
+        deviceName: cfg.receiptPrinterId || undefined,
+        silent: true,
+        widthMicrons: widthMm * 1000,
+      });
+      window.close();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [order]);
+
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
