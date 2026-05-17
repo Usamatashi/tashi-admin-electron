@@ -161,10 +161,33 @@ function createMainWindow() {
 
   mainWindow.webContents.setWindowOpenHandler(({ url: u }) => {
     if (u.startsWith("http://127.0.0.1") || u.startsWith("http://localhost")) {
-      return { action: "allow" };
+      return {
+        action: "allow",
+        overrideBrowserWindowOptions: {
+          width: 800,
+          height: 600,
+          show: false,               // stays hidden from user
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.cjs"),  // ← fixes missing electronAPI
+            contextIsolation: true,
+            nodeIntegration: false,
+          },
+        },
+      };
     }
     shell.openExternal(u);
     return { action: "deny" };
+  });
+
+  // Once popup finishes loading, show it briefly so Electron renders
+  // content fully before the page's useEffect triggers printing
+  mainWindow.webContents.on("did-create-window", (popup) => {
+    popup.webContents.once("did-finish-load", () => {
+      // Content is rendered; the page's own useEffect will call
+      // electronAPI.printSenderWindow and then window.close()
+    });
+    popup.on("closed", () => {});
   });
 
   mainWindow.on("closed", () => { mainWindow = null; });
@@ -221,19 +244,28 @@ ipcMain.handle("get-printers", async () => {
 ipcMain.handle("print-to-printer", (_e, { deviceName, widthMicrons, heightMicrons, silent, copies }) => {
   return new Promise((resolve) => {
     if (!mainWindow) return resolve({ success: false, error: "No window" });
-    // For thermal/roll printers: if only width is given, use a tall default height (500 mm).
-    // The thermal printer cuts at the actual content end regardless of the page height.
-    let pageSize = undefined;
-    if (widthMicrons) {
-      pageSize = { width: widthMicrons, height: heightMicrons ?? 500000 };
-    }
     const opts = {
       silent: silent ?? false,
       copies: copies ?? 1,
       ...(deviceName ? { deviceName } : {}),
-      ...(pageSize ? { pageSize } : {}),
+      pageSize: (widthMicrons && heightMicrons)
+        ? { width: widthMicrons, height: heightMicrons }
+        : undefined,
     };
     mainWindow.webContents.print(opts, (success, reason) => {
+      resolve({ success, reason: reason ?? null });
+    });
+  });
+});
+
+ipcMain.handle("print-sender-window", (_e, { deviceName, silent, copies }) => {
+  return new Promise((resolve) => {
+    const opts = {
+      silent: silent ?? true,
+      copies: copies ?? 1,
+      ...(deviceName ? { deviceName } : {}),
+    };
+    _e.sender.print(opts, (success, reason) => {
       resolve({ success, reason: reason ?? null });
     });
   });
