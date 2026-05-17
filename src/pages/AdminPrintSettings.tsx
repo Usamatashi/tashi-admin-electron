@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import JsBarcode from "jsbarcode";
 import { useRef } from "react";
 import {
-  Printer, Save, Plus, Trash2, Star, Settings2, Receipt,
-  ChevronDown, ChevronUp, Monitor, Layers, SlidersHorizontal, Cpu,
+  Printer, Save, Settings2, Receipt,
+  Monitor, Layers, SlidersHorizontal, Cpu,
   QrCode, FileText, AlertCircle,
 } from "lucide-react";
 import {
   loadReceiptSettings, saveReceiptSettings,
-  DEFAULT_RECEIPT_SETTINGS, DEFAULT_PRINTER,
+  DEFAULT_RECEIPT_SETTINGS,
   type ReceiptSettings, type PrinterConfig,
 } from "@/lib/printSettings";
 import { PageHeader, PageShell, Btn, Card, Field } from "@/components/admin/ui";
@@ -377,8 +377,6 @@ export default function AdminPrintSettings() {
   const [tab, setTab] = useState<Tab>("receipt");
   const [s, setS] = useState<ReceiptSettings>(() => loadReceiptSettings());
   const [saved, setSaved] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
   const [systemPrinters, setSystemPrinters] = useState<{ name: string; isDefault: boolean }[]>([]);
 
   useEffect(() => {
@@ -398,38 +396,6 @@ export default function AdminPrintSettings() {
     saveReceiptSettings(s);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }
-
-  function addPrinter() {
-    if (!newName.trim()) return;
-    const printer: PrinterConfig = {
-      id: Date.now().toString(),
-      name: newName.trim(),
-      ...DEFAULT_PRINTER,
-    };
-    setS((prev) => ({ ...prev, printers: [...prev.printers, printer] }));
-    setNewName("");
-    setExpandedId(printer.id);
-  }
-
-  function updatePrinter(updated: PrinterConfig) {
-    setS((prev) => ({
-      ...prev,
-      printers: prev.printers.map((p) => p.id === updated.id ? updated : p),
-    }));
-  }
-
-  function deletePrinter(id: string) {
-    setS((prev) => ({
-      ...prev,
-      printers: prev.printers.filter((p) => p.id !== id),
-      defaultPrinterId: prev.defaultPrinterId === id ? "" : prev.defaultPrinterId,
-    }));
-    if (expandedId === id) setExpandedId(null);
-  }
-
-  function setDefault(id: string) {
-    setS((prev) => ({ ...prev, defaultPrinterId: id }));
   }
 
   return (
@@ -464,11 +430,6 @@ export default function AdminPrintSettings() {
         >
           <Printer className="h-4 w-4" />
           Printers
-          {s.printers.length > 0 && (
-            <span className="ml-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700">
-              {s.printers.length}
-            </span>
-          )}
         </button>
       </div>
 
@@ -671,99 +632,6 @@ export default function AdminPrintSettings() {
             </div>
           </Card>
 
-          {/* Add printer */}
-          <Card className="p-5">
-            <div className="mb-3 text-sm font-semibold text-ink-800 flex items-center gap-2">
-              <Plus className="h-4 w-4 text-brand-500" /> Add Printer
-            </div>
-            <div className="flex gap-3">
-              <input
-                className="input flex-1"
-                placeholder='Printer name — e.g. "4BARCODE 4B-2054K Counter"'
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addPrinter()}
-              />
-              <Btn onClick={addPrinter} disabled={!newName.trim()}>
-                <Plus className="h-4 w-4" /> Add
-              </Btn>
-            </div>
-            <p className="mt-2 text-[11px] text-ink-400">
-              After adding, expand the printer card to configure all driver settings (Page Setup, Graphics, Stock, Options).
-            </p>
-          </Card>
-
-          {/* Printer list */}
-          {s.printers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-ink-200 py-12 text-ink-400">
-              <Printer className="h-8 w-8 mb-2 opacity-40" />
-              <p className="text-sm">No printers added yet</p>
-              <p className="text-[11px] mt-1">Add a printer above and configure its driver settings</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {s.printers.map((p) => (
-                <div
-                  key={p.id}
-                  className={`rounded-xl border overflow-hidden transition-colors ${
-                    p.id === s.defaultPrinterId ? "border-brand-300 bg-brand-50/30" : "border-ink-200 bg-white"
-                  }`}
-                >
-                  {/* Printer header row */}
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <Printer className="h-4 w-4 text-ink-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-ink-900 flex items-center gap-2 flex-wrap">
-                        {p.name}
-                        {p.id === s.defaultPrinterId && (
-                          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">Default</span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-ink-400 mt-0.5">
-                        {p.stockName} · {p.labelWidthIn} × {p.labelHeightIn} in · {p.resolutionDpi} dpi · {p.mediaMethod} · Darkness {p.darkness}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {p.id !== s.defaultPrinterId && (
-                        <button
-                          onClick={() => setDefault(p.id)}
-                          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-amber-700 hover:bg-amber-50 transition-colors"
-                        >
-                          <Star className="h-3 w-3" /> Default
-                        </button>
-                      )}
-                      <button
-                        onClick={() => deletePrinter(p.id)}
-                        className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="h-3 w-3" /> Remove
-                      </button>
-                      <button
-                        onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
-                        className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-ink-600 hover:bg-ink-100 transition-colors"
-                      >
-                        {expandedId === p.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        {expandedId === p.id ? "Collapse" : "Configure"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Expanded: driver properties (4-tab panel) */}
-                  {expandedId === p.id && (
-                    <div className="border-t border-ink-200 p-4 bg-ink-50/40">
-                      <PrinterPropertiesPanel p={p} onChange={updatePrinter} />
-                      <div className="mt-3 flex justify-end">
-                        <Btn onClick={handleSave}>
-                          <Save className="h-4 w-4" /> Save All Settings
-                        </Btn>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Help note */}
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
             <p className="text-[11px] font-semibold text-blue-800 mb-1">These settings match your 4BARCODE driver</p>
@@ -792,12 +660,10 @@ export default function AdminPrintSettings() {
             </div>
           </div>
 
-          {s.printers.length > 0 && (
-            <Btn onClick={handleSave}>
-              <Save className="h-4 w-4" />
-              {saved ? "Saved!" : "Save Changes"}
-            </Btn>
-          )}
+          <Btn onClick={handleSave}>
+            <Save className="h-4 w-4" />
+            {saved ? "Saved!" : "Save Changes"}
+          </Btn>
         </div>
       )}
     </PageShell>

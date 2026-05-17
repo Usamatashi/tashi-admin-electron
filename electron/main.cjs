@@ -164,9 +164,8 @@ function createMainWindow() {
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
-          width: 800,
-          height: 600,
-          show: false,
+          width: 900,
+          height: 700,
           autoHideMenuBar: true,
           webPreferences: {
             preload: path.join(__dirname, "preload.cjs"),
@@ -182,8 +181,7 @@ function createMainWindow() {
 
   mainWindow.webContents.on("did-create-window", (popup) => {
     popup.webContents.once("did-finish-load", () => {
-      // Content is rendered; the page's own useEffect will call
-      // electronAPI.printSenderWindow and then window.close()
+      popup.show();
     });
     popup.on("closed", () => {});
   });
